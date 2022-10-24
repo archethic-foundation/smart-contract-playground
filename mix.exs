@@ -50,7 +50,9 @@ defmodule ArchethicPlayground.MixProject do
       {:esbuild, "~> 0.2", runtime: Mix.env() == :dev},
       {:dart_sass, "~> 0.4", runtime: Mix.env() == :dev},
       {:archethic,
-       git: "https://github.com/archethic-foundation/archethic-node.git", tag: "v0.25.0"}
+       git: "https://github.com/archethic-foundation/archethic-node.git",
+       tag: "v0.25.0",
+       runtime: false}
     ]
   end
 
