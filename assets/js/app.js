@@ -1,16 +1,16 @@
-import { Socket } from "phoenix"
+import { Socket } from "phoenix"
 import { LiveSocket } from "phoenix_live_view"
 
 // add alpinejs
-import Alpine  from "alpinejs"
+import Alpine from "alpinejs"
 
 window.Alpine = Alpine
 Alpine.start()
 
-import {EditorState, basicSetup} from "@codemirror/basic-setup"
-import {EditorView, keymap} from "@codemirror/view"
-import {indentWithTab} from "@codemirror/commands"
-import {CompletionContext, autocompletion} from "@codemirror/autocomplete"
+import { EditorState, basicSetup } from "@codemirror/basic-setup"
+import { EditorView, keymap } from "@codemirror/view"
+import { indentWithTab } from "@codemirror/commands"
+import { CompletionContext, autocompletion } from "@codemirror/autocomplete"
 
 let Hooks = {}
 
@@ -19,16 +19,20 @@ function myCompletions(context) {
   if (word.from == word.to && !context.explicit) {
     return null
   }
-  
+
   return {
     from: word.from,
     options: [
-      { label: "actions by transactions", type: "text", apply: `actions triggered_by: transaction do 
+      {
+        label: "actions by transactions", type: "text", apply: `actions triggered_by: transaction do 
   # Enter your actions when you are receving a transaction
-end`, detail: "snippet" },
-      { label: "condition for transactions", type: "text", apply: `condition transaction: [ 
-]`, detail: "snippet" },
-      {label: "transaction", type: "variable", info: "Incoming transaction"}
+end`, detail: "snippet"
+      },
+      {
+        label: "condition for transactions", type: "text", apply: `condition transaction: [ 
+]`, detail: "snippet"
+      },
+      { label: "transaction", type: "variable", info: "Incoming transaction" }
     ]
   }
 }
@@ -36,23 +40,23 @@ end`, detail: "snippet" },
 
 Hooks.MonacoEditor = {
   mounted() {
-  
+
     let startState = EditorState.create({
       doc: "Hello",
       extensions: [
-        basicSetup, 
+        basicSetup,
         keymap.of(indentWithTab),
         autocompletion({ override: [myCompletions] }),
         EditorView.updateListener.of(v => {
           if (v.docChanged) {
             code = v.state.doc.toString()
-            this.pushEvent("interpret", { code: code })
-          }    
+            this.pushEvent("interpret", { code: code })
+          }
         })
       ]
     })
-    
-    
+
+
     let view = new EditorView({
       state: startState,
       parent: this.el
@@ -60,8 +64,8 @@ Hooks.MonacoEditor = {
 
     view.focus()
   }
-  
-  
+
+
 }
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content");
@@ -76,7 +80,7 @@ let liveSocket = new LiveSocket("/live", Socket, {
         window.Alpine.clone(from, to)
       }
     }
-  }    
+  }
 })
 
 

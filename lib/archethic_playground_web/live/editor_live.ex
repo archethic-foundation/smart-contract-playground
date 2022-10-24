@@ -1,25 +1,25 @@
 defmodule ArchethicPlaygroundWeb.EditorLive do
   @moduledoc false
-  
+
   use Phoenix.LiveView
-  
+
   def render(assigns) do
-    ~H"""
-    <div class="editor" phx-hook="MonacoEditor" id="monaco-editor">
-    </div>    
+    ~L"""
+    <div class="monaco-editor" phx-hook="MonacoEditor" id="monaco-editor">
+    </div>
     """
   end
-  
+
   def mount(_params, _opts, socket) do
     {:ok, socket}
   end
-  
-  def handle_event("interpret", %{ "code" => "" }, socket) do
+
+  def handle_event("interpret", %{"code" => ""}, socket) do
     {:noreply, socket}
   end
-  
+
   def handle_event("interpret", %{"code" => code}, socket) do
-   ArchethicPlayground.interpret(code) |> IO.inspect()
-   {:reply, %{status: "ok"}, socket}
+    ArchethicPlayground.interpret(code)
+    {:reply, %{status: "ok"}, socket}
   end
 end

@@ -5,7 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat&display=swap" rel="stylesheet">
-    <link phx-track-static rel="stylesheet" href={Routes.static_path(@conn, "/assets/app.css")}/>
+    <link phx-track-static rel="stylesheet" href=<%= Routes.static_path(@conn, "/assets/app.css") %> />
     <%= live_title_tag assigns[:page_title] || "Home", suffix: " - Archethic Playground" %>
     <%= csrf_meta_tag() %>
   </head>
@@ -25,6 +25,6 @@
     <main class="pt-6">
       <%= @inner_content %>
      </main>
-     <script phx-track-static type="text/javascript" src={Routes.static_path(@conn, "/assets/app.js")}></script>  
+     <script phx-track-static type="text/javascript" src="<%= Routes.static_path(@conn, "/assets/app.js") %>"> </script>
   </body>
 </html>

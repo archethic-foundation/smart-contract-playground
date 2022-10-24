@@ -14,7 +14,7 @@ config :phoenix, :plug_init_mode, :runtime
 # watchers to your application. For example, we use it
 # with webpack to recompile .js and .css sources.
 config :archethic_playground, ArchethicPlaygroundWeb.Endpoint,
-  http: [port: 4000],
+  http: [port: 8000],
   server: true,
   debug_errors: true,
   code_reloader: true,
