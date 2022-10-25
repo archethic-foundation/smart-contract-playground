@@ -4,7 +4,7 @@ defmodule ArchethicPlayground do
   """
 
   def interpret(code) do
-    # Archethic.Contracts.Interpreter.parse(code)
-    code
+    Archethic.Contracts.Interpreter.parse(code)
+    # code
   end
 end

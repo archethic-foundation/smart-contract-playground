@@ -8,7 +8,8 @@ defmodule ArchethicPlayground.MixProject do
       elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      aliases: aliases()
+      aliases: aliases(),
+      dialyzer: dialyzer()
     ]
   end
 
@@ -17,6 +18,12 @@ defmodule ArchethicPlayground.MixProject do
     [
       extra_applications: [:logger],
       mod: {ArchethicPlayground.Application, []}
+    ]
+  end
+
+  defp dialyzer do
+    [
+      plt_add_apps: [:archethic]
     ]
   end
 
