@@ -52,10 +52,12 @@ defmodule ArchethicPlayground.MixProject do
       {:knigge, "~> 1.4"},
       # Security
       {:sobelow, ">= 0.11.1", only: [:test, :dev], runtime: false},
+
+      # UI
+      {:tailwind, "~> 0.1", runtime: Mix.env() == :dev},
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
       {:esbuild, "~> 0.2", runtime: Mix.env() == :dev},
-      {:dart_sass, "~> 0.4", runtime: Mix.env() == :dev},
       {:archethic,
        git: "https://github.com/archethic-foundation/archethic-node.git",
        tag: "v0.25.0",
@@ -65,12 +67,26 @@ defmodule ArchethicPlayground.MixProject do
 
   defp aliases do
     [
-      setup: ["deps.get"],
-      "assets.deploy": [
-        "esbuild default --minify",
-        "sass default --no-source-map --style=compressed",
-        "phx.digest"
-      ]
+      # Intial developer Setup
+      "dev.setup": ["deps.get", "cmd npm install --prefix assets"],
+      # When Changes are not registered by compiler | any()
+      "dev.clean": ["clean", "format", "compile"],
+      # run single node
+      "dev.run": ["deps.get", "cmd mix dev.clean", "cmd iex -S mix phx.server"],
+      # Must be run before git push --no-verify | any(dialyzer issue)
+      "dev.checks": [
+        "clean",
+        "format",
+        "compile",
+        "credo",
+        "sobelow",
+        "cmd mix test --trace",
+        "dialyzer"
+      ],
+      # paralele checks
+      "dev.pchecks": ["  clean &   format &    compile &   credo &   sobelow & test &   dialyzer"],
+      "format.all": ["format", "cmd npm run format --prefix ./assets"],
+      "build.assets": ["tailwind default --minify", "esbuild default --minify", "phx.digest"]
     ]
   end
 end

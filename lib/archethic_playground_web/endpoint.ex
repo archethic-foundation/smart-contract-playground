@@ -27,7 +27,7 @@ defmodule ArchethicPlaygroundWeb.Endpoint do
     at: "/",
     from: :archethic_playground,
     gzip: true,
-    only: ~w(assets robots.txt .well-known)
+    only: ~w(assets images robots.txt .well-known)
   )
 
   # Code reloading can be explicitly enabled under the

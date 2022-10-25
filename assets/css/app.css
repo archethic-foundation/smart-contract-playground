@@ -1,0 +1,9 @@
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
+
+@import "tippy.js/dist/tippy.css";
+
+.tippy-box[data-theme~="dark"] {
+  @apply bg-slate-800 dark:bg-slate-500;
+}

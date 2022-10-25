@@ -5,7 +5,7 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
 
   def render(assigns) do
     ~L"""
-    <div class="editor" phx-hook="MonacoEditor" id="monaco-editor">
+    <div class="h-screen w-full" id="archethic-editor">
     </div>
     """
   end
