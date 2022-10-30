@@ -1,6 +1,6 @@
 import { Socket } from "phoenix";
 import { LiveSocket } from "phoenix_live_view";
-import EditorLoader from "@monaco-editor/loader";
+import { loadEditor } from "./editor/editor";
 
 // add tooltips
 import tippy from "tippy.js";
@@ -10,24 +10,6 @@ import Alpine from "alpinejs";
 window.Alpine = Alpine;
 Alpine.start();
 
-EditorLoader.init().then((monaco) => {
-  monaco.editor.create(document.getElementById("archethic-editor"), {
-    value: "// Smart Contracts Editor for Archethic",
-    language: "typescript",
-    theme: "vs-dark",
-    formatOnType: false,
-    fontSize: 16,
-    tabSize: 2,
-    lineNumbersMinChars: 3,
-    minimap: {
-      enabled: true,
-    },
-    scrollbar: {
-      useShadows: false,
-    },
-    mouseWheelZoom: true,
-  });
-});
 
 // tooltip
 tippy("[data-tippy-content]", {
@@ -35,6 +17,7 @@ tippy("[data-tippy-content]", {
 });
 
 let Hooks = {};
+
 // function myCompletions(context) {
 //   let word = context.matchBefore(/\w*/)
 //   if (word.from == word.to && !context.explicit) {
@@ -85,10 +68,28 @@ let Hooks = {};
 //   }
 // }
 
+// Load the editor
+Hooks.hook_LoadEditor = {
+  mounted() {
+    loadEditor().then((monaco) => {
+      window.editor = monaco
+    });
+  }
+};
+
+// Validate the contract by sending event to live_view
+Hooks.hook_ValidateContract = {
+  mounted() {
+    this.el.addEventListener('click', (event) => {
+      this.pushEvent("interpret", { contract: window.editor.getValue() });
+    });
+  }
+};
+
+
 let csrfToken = document
   .querySelector("meta[name='csrf-token']")
   .getAttribute("content");
-console.log(csrfToken);
 
 let liveSocket = new LiveSocket("/live", Socket, {
   hooks: Hooks,

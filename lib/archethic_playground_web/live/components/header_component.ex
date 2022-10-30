@@ -1,6 +1,13 @@
-<header class="z-10 py-4 bg-white shadow-md dark:bg-gray-800">
-  <div
-            class="container flex items-center justify-between h-full px-6 mx-auto text-purple-600 dark:text-purple-300"
+defmodule ArchethicPlaygroundWeb.HeaderComponent do
+  @moduledoc false
+
+  use Phoenix.LiveComponent
+
+  def render(assigns) do
+    ~L"""
+    <header class="flex-none z-10 py-4 bg-white shadow-md dark:bg-gray-800">
+    <div
+            class="flex items-center justify-between h-full px-6 mx-auto text-purple-600 dark:text-purple-300"
           >
     <!-- Brand/Logo -->
     <a class="ml-1 text-lg font-bold text-gray-800 dark:text-gray-200"
@@ -54,6 +61,15 @@
         </a>
       </li>
       <!-- end menu.GitHub -->
+
+      <li class="inline-flex">
+      <div x-data="{id: 1}">
+        <button @click="$dispatch('open-terminal',{id})">Open Terminal</button>
+      </div>
+      </li>
     </ul>
-  </div>
-</header>
+    </div>
+    </header>
+    """
+  end
+end

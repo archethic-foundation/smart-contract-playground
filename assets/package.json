@@ -1,7 +1,7 @@
 {
   "name": "smart-contract-playground",
   "version": "1.0.0",
-  "description": "**TODO: Add description**",
+  "description": "Smart Contract Editor for Archethic",
   "main": "index.js",
   "directories": {
     "lib": "lib",
