@@ -17,7 +17,7 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
       <div class="flex h-screen flex-col flex-1">
         <%= live_component @socket, HeaderComponent, assigns %>
           <!-- monaco.editor -->
-          <div class="h-screen" id="archethic-editor" phx-hook="hook_LoadEditor">
+          <div class="h-screen" id="archethic-editor" phx-hook="hook_LoadEditor" phx-update="ignore">
           </div>
           <!-- end monaco.editor -->
        <%= live_component @socket, TerminalComponent, assigns %>
