@@ -2,7 +2,7 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
   @moduledoc false
   alias ArchethicPlaygroundWeb.HeaderComponent
   alias ArchethicPlaygroundWeb.SidebarComponent
-  alias ArchethicPlaygroundWeb.TerminalComponent
+  alias ArchethicPlaygroundWeb.ConsoleComponent
 
   use Phoenix.LiveView
 
@@ -19,8 +19,9 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
           <!-- monaco.editor -->
           <div class="h-screen" id="archethic-editor" phx-hook="hook_LoadEditor" phx-update="ignore">
           </div>
+
+         <%= live_component @socket, ConsoleComponent, assigns %>
           <!-- end monaco.editor -->
-       <%= live_component @socket, TerminalComponent, assigns %>
       </div>
     </div>
     """

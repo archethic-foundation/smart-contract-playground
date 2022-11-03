@@ -61,12 +61,6 @@ defmodule ArchethicPlaygroundWeb.HeaderComponent do
         </a>
       </li>
       <!-- end menu.GitHub -->
-
-      <li class="inline-flex">
-      <div x-data="{id: 1}">
-        <button @click="$dispatch('open-terminal',{id})">Open Terminal</button>
-      </div>
-      </li>
     </ul>
     </div>
     </header>
