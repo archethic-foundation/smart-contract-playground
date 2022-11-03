@@ -50,10 +50,11 @@ defmodule ArchethicPlaygroundWeb.SidebarComponent do
       </li>
       <!-- end menu.search -->
       <!-- menu.validate -->
-      <li class="relative px-6 py-3">
+      <li class="relative px-6 py-3" x-data="{id: 1}">
         <a
                 class="inline-flex items-center w-full text-sm font-semibold transition-colors duration-150 hover:text-gray-800 dark:hover:text-gray-200"
                 href="#"
+                @click="$dispatch('open-terminal',{id})"
                 data-tippy-content="Validate Contract"
                 id="id_ValidateContract"
                 phx-hook="hook_ValidateContract"
