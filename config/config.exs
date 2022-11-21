@@ -13,9 +13,9 @@ config :archethic_playground, ArchethicPlaygroundWeb.Endpoint,
 
 config :esbuild,
   version: "0.12.18",
-  default: [
+  playground: [
     args:
-      ~w(js/app.js --bundle --target=es2017 --loader:.ttf=file --outdir=../priv/static/assets),
+      ~w(js/app.js --bundle --target=es2018 --loader:.ttf=file --outdir=../priv/static/assets),
     cd: Path.expand("../assets", __DIR__),
     env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
   ]

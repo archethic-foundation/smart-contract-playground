@@ -35,9 +35,9 @@ defmodule ArchethicPlayground.MixProject do
       # {:phoenix_html, "~> 3.1.0", override: true},
 
       # Added to avoid conflict with archethic-node
-      {:phoenix, ">= 1.5.4"},
-      {:phoenix_html, "~> 2.14"},
-      {:phoenix_live_view, "~> 0.15.0"},
+      {:phoenix, "~> 1.6"},
+      {:phoenix_html, "~> 3.0"},
+      {:phoenix_live_view, "~> 0.18"},
       {:phoenix_pubsub, "~> 2.0"},
       # Added to avoid conflict with archethic-node
       {:ranch, "~> 2.1", override: true},
@@ -60,7 +60,7 @@ defmodule ArchethicPlayground.MixProject do
       {:esbuild, "~> 0.2", runtime: Mix.env() == :dev},
       {:archethic,
        git: "https://github.com/archethic-foundation/archethic-node.git",
-       tag: "v0.25.0",
+       tag: "v0.26.0",
        runtime: false}
     ]
   end
@@ -86,7 +86,7 @@ defmodule ArchethicPlayground.MixProject do
       # paralele checks
       "dev.pchecks": ["  clean &   format &    compile &   credo &   sobelow & test &   dialyzer"],
       "format.all": ["format", "cmd npm run format --prefix ./assets"],
-      "build.assets": ["tailwind default --minify", "esbuild default --minify", "phx.digest"]
+      "build.assets": ["tailwind default --minify", "esbuild playground --minify", "phx.digest"]
     ]
   end
 end
