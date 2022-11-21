@@ -7,3 +7,10 @@
 .tippy-box[data-theme~="dark"] {
   @apply bg-slate-800 dark:bg-slate-500;
 }
+
+.ValidationErrorMargin {
+	background: red;
+}
+.ValidationErrorLine {
+	background: grey;
+}

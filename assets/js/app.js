@@ -71,8 +71,42 @@ let Hooks = {};
 // Load the editor
 Hooks.hook_LoadEditor = {
   mounted() {
-    loadEditor().then((monaco) => {
-      window.editor = monaco
+    loadEditor().then(({editor, monaco}) => {
+      window.editor = editor;
+      window.monaco = monaco;
+      window.editor.onKeyUp(() => {
+        if(this.keyUpHandler) clearTimeout(this.keyUpHandler);
+        this.keyUpHandler = setTimeout(() => {
+          this.pushEvent("interpret", { contract: window.editor.getValue() }, (reply, ref) => {
+            if(reply.result.status == "error") {
+              const lineNumber = extractLineNumber(reply.result.message)
+              const newDecorations = window.editor.deltaDecorations(
+                this.oldDecorations || [],
+                [
+                  {
+                    range: new window.monaco.Range(lineNumber, 1, lineNumber, 1),
+                    options: {
+                      isWholeLine: true,
+                      className: 'ValidationErrorLine',
+                      glyphMarginClassName: 'ValidationErrorMargin', 
+                      hoverMessage: [
+                        { value: '**ERROR**' },
+                        { value:  reply.result.message}
+                      ]
+                    }
+                  }
+                ]
+              );
+              this.oldDecorations = newDecorations;
+            } else {
+              window.editor.deltaDecorations(
+                this.oldDecorations || [], []
+              );
+              this.oldDecorations = []
+            }
+          });
+        }, this.el.dataset.debounceValidation);
+      })
     });
   }
 };
@@ -85,7 +119,6 @@ Hooks.hook_ValidateContract = {
     });
   }
 };
-
 
 let csrfToken = document
   .querySelector("meta[name='csrf-token']")
@@ -137,4 +170,10 @@ function data() {
       setThemeToLocalStorage(this.dark);
     },
   };
+}
+
+function extractLineNumber(message) {
+  const reg = new RegExp(/L(\d+)(:C(\d+))?$/g);
+  const found = reg.exec(message);
+  return parseInt(found[1]);
 }
