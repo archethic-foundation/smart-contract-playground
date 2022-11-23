@@ -4,7 +4,7 @@ defmodule ArchethicPlaygroundWeb.HeaderComponent do
   use Phoenix.LiveComponent
 
   def render(assigns) do
-    ~L"""
+    ~H"""
     <header class="flex-none z-10 py-4 bg-white shadow-md dark:bg-gray-800">
     <div
             class="flex items-center justify-between h-full px-6 mx-auto text-purple-600 dark:text-purple-300"

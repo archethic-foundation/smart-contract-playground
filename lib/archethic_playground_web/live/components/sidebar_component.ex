@@ -4,7 +4,7 @@ defmodule ArchethicPlaygroundWeb.SidebarComponent do
   use Phoenix.LiveComponent
 
   def render(assigns) do
-    ~L"""
+    ~H"""
     <aside
         class="z-20 flex-shrink-0 hidden overflow-y-auto bg-white w-30 dark:bg-gray-800 md:block"
       >
@@ -16,7 +16,7 @@ defmodule ArchethicPlaygroundWeb.SidebarComponent do
                 class="inline-flex items-center w-full text-sm font-semibold text-gray-800 transition-colors duration-150 hover:text-gray-800 dark:hover:text-gray-200 dark:text-gray-100"
                 href="index.html"
               >
-    <img phx-track-static src='<%= ArchethicPlaygroundWeb.Router.Helpers.static_path(@socket, "/images/archethic_logo_gradient.svg") %>' class="w-6 h-6" />
+    <img phx-track-static src={ArchethicPlaygroundWeb.Router.Helpers.static_path(@socket, "/images/archethic_logo_gradient.svg")} class="w-6 h-6" />
         </a>
       </li>
     </ul>

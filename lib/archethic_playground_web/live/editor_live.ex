@@ -10,11 +10,11 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
   @dialyzer {:nowarn_function, render: 1}
 
   def render(assigns) do
-    ~L"""
+    ~H"""
     <div class="flex bg-gray-50 dark:bg-gray-900" >
-    <%= live_component @socket, SidebarComponent, assigns %>
+    <.live_component module={SidebarComponent} id="sidebar" />
       <div class="flex h-screen flex-col flex-1">
-        <%= live_component @socket, HeaderComponent, assigns %>
+      <.live_component module={HeaderComponent} id="header" />
           <!-- monaco.editor -->
           <div class="h-screen" id="archethic-editor" phx-hook="hook_LoadEditor" phx-update="ignore" data-debounce-validation="1000">
           </div>
@@ -41,7 +41,6 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
         {:error, message} ->
           %{status: :error, message: message}
       end
-
 
     {:reply, %{result: result}, socket}
   end
