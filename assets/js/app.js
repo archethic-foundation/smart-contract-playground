@@ -78,31 +78,20 @@ Hooks.hook_LoadEditor = {
         if(this.keyUpHandler) clearTimeout(this.keyUpHandler);
         this.keyUpHandler = setTimeout(() => {
           this.pushEvent("interpret", { contract: window.editor.getValue() }, (reply, ref) => {
+            const model = window.editor.getModel();
             if(reply.result.status == "error") {
-              const lineNumber = extractLineNumber(reply.result.message)
-              const newDecorations = window.editor.deltaDecorations(
-                this.oldDecorations || [],
-                [
-                  {
-                    range: new window.monaco.Range(lineNumber, 1, lineNumber, 1),
-                    options: {
-                      isWholeLine: true,
-                      className: 'ValidationErrorLine',
-                      glyphMarginClassName: 'ValidationErrorMargin', 
-                      hoverMessage: [
-                        { value: '**ERROR**' },
-                        { value:  reply.result.message}
-                      ]
-                    }
-                  }
-                ]
-              );
-              this.oldDecorations = newDecorations;
+              const lineNumber = extractLineNumber(reply.result.message);
+              const markers = [{
+                message: reply.result.message,
+                severity: monaco.MarkerSeverity.Error,
+                startLineNumber: lineNumber,
+                startColumn: 1,
+                endLineNumber: lineNumber,
+                endColumn: model.getLineLength(lineNumber) + 1
+              }];
+              window.monaco.editor.setModelMarkers(model, 'owner', markers);
             } else {
-              window.editor.deltaDecorations(
-                this.oldDecorations || [], []
-              );
-              this.oldDecorations = []
+              window.monaco.editor.setModelMarkers(model, 'owner', []);
             }
           });
         }, this.el.dataset.debounceValidation);

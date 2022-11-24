@@ -13,9 +13,9 @@ async function loadEditor() {
       // setTheme(monaco);
 
       // Create Monaco Instance
+      const uri = window.monaco.Uri.parse("inmemory://smart-contract-elixir");
+      const model = window.monaco.editor.createModel("# Smart Contracts Editor for Archethic", "elixir", uri);
       let editor = monaco.editor.create(document.getElementById('archethic-editor'), {
-        value: '# Smart Contracts Editor for Archethic',
-        language: 'elixir',
         theme: 'vs-dark',
         fontSize: 16,
         tabSize: 2,
@@ -27,7 +27,7 @@ async function loadEditor() {
           useShadows: false,
         },
         mouseWheelZoom: true,
-        glyphMargin: true
+        model: model
       });
       return {editor, monaco};
     });
