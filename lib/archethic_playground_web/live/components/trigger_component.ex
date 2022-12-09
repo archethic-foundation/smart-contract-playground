@@ -160,16 +160,18 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
         %{"form" => %{"oracle_content" => oracle_content}},
         _socket
       ) do
-    tx = %Transaction{
-      type: :oracle,
-      data: %TransactionData{
-        content: oracle_content
-      }
-    }
+    transaction =
+      Constants.from_transaction(%Transaction{
+        address: "",
+        type: :oracle,
+        data: %TransactionData{
+          content: oracle_content
+        }
+      })
 
     constants = %{
       "contract" => contract_constants,
-      "transaction" => Constants.from_transaction(tx)
+      "transaction" => transaction
     }
 
     ActionInterpreter.execute(Map.fetch!(triggers, :oracle), constants)
