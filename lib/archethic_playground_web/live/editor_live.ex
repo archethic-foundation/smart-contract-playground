@@ -30,20 +30,7 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
           triggers =
             interpreted_contract.triggers
             |> Enum.map(fn {key, _} ->
-              key
-              |> case do
-                {:interval, interval} ->
-                  "interval:#{interval}"
-
-                {:datetime, datetime} ->
-                  "datetime:#{DateTime.to_unix(datetime)}"
-
-                :oracle ->
-                  "oracle"
-
-                :transaction ->
-                  "transaction"
-              end
+              get_key(key)
             end)
 
           {
@@ -65,6 +52,11 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
   def handle_info({:trigger_transaction, trigger_transaction}, socket) do
     {:noreply, assign(socket, trigger_transaction: trigger_transaction)}
   end
+
+  defp get_key({:interval, interval}), do: "interval:#{interval}"
+  defp get_key({:datetime, datetime}), do: "datetime:#{DateTime.to_unix(datetime)}"
+  defp get_key(:oracle), do: "oracle"
+  defp get_key(:transaction), do: "transaction"
 
   # def handle_event("interpret", %{"code" => code}, socket) do
   #   # ArchethicPlayground.interpret(code)
