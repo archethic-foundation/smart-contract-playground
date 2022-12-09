@@ -1,0 +1,12 @@
+<div class="flex bg-gray-50 dark:bg-gray-900" >
+    <.live_component module={SidebarComponent} id="sidebar" />
+    <.live_component module={TriggerComponent} id="trigger_component" triggers={@triggers} is_show_trigger={@is_show_trigger} interpreted_contract={@interpreted_contract} />
+    <div class="flex h-screen flex-col flex-1">
+    <.live_component module={HeaderComponent} id="header" />
+    <!-- monaco.editor -->
+    <div class="h-screen" id="archethic-editor" phx-hook="hook_LoadEditor" phx-update="ignore" data-debounce-validation="1000">
+    </div>
+    <!-- end monaco.editor -->
+    <.live_component module={ConsoleComponent} id="console" trigger_transaction={@trigger_transaction} />
+    </div>
+</div>
