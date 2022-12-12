@@ -27,7 +27,7 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
                                 <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="triggers">
                                 Select the action you want to trigger
                                 </label>
-                                <%= select f, :trigger, @triggers, value: @selected_trigger, id: "triggers", class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+                                <%= select f, :trigger, @triggers, value: @selected_trigger, id: "triggers", prompt: "Select a trigger", class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
                             </div>
 
                             <%= if @display_oracle_form do %>
@@ -40,7 +40,7 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
                             <% end %>
                             </div>
                             <%= unless @display_transaction_form do %>
-                            <%= submit "Trigger", disabled: length(@triggers) == 0, class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" %>
+                            <%= submit "Trigger", disabled: @selected_trigger == "", class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" %>
                             <% end %>
                         </.form>
                         <%= if @display_transaction_form do %>
