@@ -4,6 +4,7 @@ defmodule ArchethicPlayground.Application do
   @moduledoc false
 
   use Application
+  alias Archethic.Crypto.Ed25519.LibSodiumPort
 
   @impl true
   def start(_type, _args) do
@@ -11,7 +12,8 @@ defmodule ArchethicPlayground.Application do
       # Starts a worker by calling: ArchethicPlayground.Worker.start_link(arg)
       # {ArchethicPlayground.Worker, arg}
       ArchethicPlaygroundWeb.Supervisor,
-      {Phoenix.PubSub, [name: ArchethicPlayground.PubSub, adapter: Phoenix.PubSub.PG2]}
+      {Phoenix.PubSub, [name: ArchethicPlayground.PubSub, adapter: Phoenix.PubSub.PG2]},
+      LibSodiumPort
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

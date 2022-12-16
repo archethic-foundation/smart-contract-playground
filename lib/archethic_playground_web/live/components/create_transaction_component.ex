@@ -8,6 +8,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
   alias Archethic.TransactionChain.TransactionData.TokenLedger
   alias Archethic.TransactionChain.TransactionData.TokenLedger.Transfer, as: TokenTransfer
   alias Archethic.TransactionChain.TransactionData.UCOLedger.Transfer, as: UCOTransfer
+  alias Archethic.Crypto
 
   alias Archethic.TransactionChain.{
     Transaction,
@@ -416,37 +417,22 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     {:noreply, socket}
   end
 
-  defp build_ownerships(_ownerships) do
-    # hard coded, otherwise it raises an error
-    # * 1st argument: the table identifier does not refer to an existing ETS table
-    # (stdlib 4.1.1) :ets.lookup(:libsodium_port, :port)
-    # (archethic 0.26.0) lib/archethic/crypto/ed25519/libsodium_port.ex:21: Archethic.Crypto.Ed25519.LibSodiumPort.convert_public_key_to_x25519/1
-    # (archethic 0.26.0) lib/archethic/crypto/ed25519.ex:37: Archethic.Crypto.Ed25519.convert_to_x25519_public_key/1
-    # (archethic 0.26.0) lib/archethic/crypto.ex:592: Archethic.Crypto.ec_encrypt/2
+  defp build_ownerships(ownerships) do
+    secret_key = :crypto.strong_rand_bytes(32)
+    aes_key = :crypto.strong_rand_bytes(32)
 
-    # secret_key = :crypto.strong_rand_bytes(32)
-    # aes_key = :crypto.strong_rand_bytes(32)
-    # ownerships
-    # |> Enum.map(fn %{authorization_keys: authorization_keys, secret: secret} ->
-    #   keys =
-    #     Enum.reduce(authorization_keys, %{}, fn key, acc ->
-    #       key = Base.decode16!(key)
-    #       Map.merge(acc, %{key => Crypto.ec_encrypt(secret_key, key)})
-    #     end)
-    #   %Ownership{
-    #     secret: Crypto.aes_encrypt(secret, aes_key),
-    #     authorized_keys: keys
-    #   }
-    # end)
+    Enum.map(ownerships, fn %{authorization_keys: authorization_keys, secret: secret} ->
+      keys =
+        Enum.reduce(authorization_keys, %{}, fn key, acc ->
+          key = Base.decode16!(key)
+          Map.merge(acc, %{key => Crypto.ec_encrypt(secret_key, key)})
+        end)
 
-    [
       %Ownership{
-        secret: :crypto.strong_rand_bytes(32),
-        authorized_keys: %{
-          <<0, 0, :crypto.strong_rand_bytes(32)::binary>> => :crypto.strong_rand_bytes(32)
-        }
+        secret: Crypto.aes_encrypt(secret, aes_key),
+        authorized_keys: keys
       }
-    ]
+    end)
   end
 
   defp build_token_transfers(token_transfers) do
