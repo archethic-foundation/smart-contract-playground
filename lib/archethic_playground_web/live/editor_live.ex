@@ -4,6 +4,7 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
   alias ArchethicPlaygroundWeb.HeaderComponent
   alias ArchethicPlaygroundWeb.SidebarComponent
   alias ArchethicPlaygroundWeb.TriggerComponent
+  alias ArchethicPlaygroundWeb.DeployComponent
 
   use Phoenix.LiveView
 
@@ -19,6 +20,8 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
       |> assign(:interpreted_contract, %{})
       |> assign(:trigger_transaction, %{})
       |> assign(:is_show_trigger, false)
+      |> assign(:is_show_deploy, false)
+      |> assign(:smart_contract_code, "")
 
     {:ok, socket}
   end
@@ -34,7 +37,11 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
             end)
 
           {
-            assign(socket, triggers: triggers, interpreted_contract: interpreted_contract),
+            assign(socket,
+              triggers: triggers,
+              interpreted_contract: interpreted_contract,
+              smart_contract_code: contract
+            ),
             %{status: :ok, message: "Contract is successfully validated"}
           }
 
@@ -46,7 +53,19 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
   end
 
   def handle_event("toggle_trigger", _, socket) do
-    {:noreply, assign(socket, is_show_trigger: not socket.assigns.is_show_trigger)}
+    {:noreply,
+     assign(socket,
+       is_show_trigger: not socket.assigns.is_show_trigger,
+       is_show_deploy: false
+     )}
+  end
+
+  def handle_event("toggle_deploy", _, socket) do
+    {:noreply,
+     assign(socket,
+       is_show_deploy: not socket.assigns.is_show_deploy,
+       is_show_trigger: false
+     )}
   end
 
   def handle_info({:trigger_transaction, trigger_transaction}, socket) do

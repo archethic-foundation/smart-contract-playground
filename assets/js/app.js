@@ -15,7 +15,7 @@ Alpine.start();
 tippy("[data-tippy-content]", {
   arrow: true,
 });
-
+const CUSTOM_NETWORK_KEY = "custom_network";
 let Hooks = {};
 
 // function myCompletions(context) {
@@ -106,6 +106,32 @@ Hooks.hook_ValidateContract = {
     this.el.addEventListener('click', (event) => {
       this.pushEvent("interpret", { contract: window.editor.getValue() });
     });
+  }
+};
+
+function setEndpoint(that) {
+  const networkUrl = that.el.value == "custom_network" ? 
+        window.localStorage.getItem(CUSTOM_NETWORK_KEY) : 
+        that.el.value; 
+  that.pushEventTo(that.el, "update_endpoint", networkUrl)
+}
+
+Hooks.hook_SelectNetwork = {
+  mounted() {
+    this.el.addEventListener('change', (event) => {
+      setEndpoint(this)
+    });
+    setEndpoint(this);
+  }
+};
+
+Hooks.hook_UpdateOtherNetwork = {
+  mounted() {
+    this.el.addEventListener('keyup', (event) => {
+      if (document.getElementById("selected_network").value == "custom_network") {
+        window.localStorage.setItem(CUSTOM_NETWORK_KEY, this.el.value);
+      }
+    })
   }
 };
 

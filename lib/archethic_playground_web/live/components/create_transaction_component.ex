@@ -192,22 +192,10 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
         <hr />
         <.form :let={f} for={:form} phx-submit="create_transaction" phx-target={@myself}>
             <div class="w-full px-3">
-            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="transaction-address">
-                Address
-            </label>
-            <%= text_input f, :transaction_address, id: "transaction-address", class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
-            </div>
-            <div class="w-full px-3">
             <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="transaction-type">
                 Type
             </label>
             <%= select f, :transaction_type, Archethic.TransactionChain.Transaction.types(), id: "transaction-type", class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
-            </div>
-            <div class="w-full px-3">
-            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="transaction-code">
-                Code
-            </label>
-            <%= textarea f, :code, id: "transaction-code", class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
             </div>
             <div class="w-full px-3">
             <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="transaction-content">
@@ -215,7 +203,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
             </label>
             <%= textarea f, :content, id: "transaction-content", class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
             </div>
-            <%= submit "Trigger", class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4" %>
+            <%= submit @submit_message, class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4" %>
         </.form>
       </div>
     """
@@ -381,20 +369,18 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
 
     %{
       "form" => %{
-        "code" => code,
         "content" => content,
-        "transaction_address" => address,
         "transaction_type" => type
       }
     } = params
 
     transaction = %Transaction{
-      address: address,
+      address: "",
       type: String.to_existing_atom(type),
       data: %TransactionData{
         ownerships: ownerships,
         content: content,
-        code: code,
+        code: socket.assigns.smart_contract_code,
         ledger: %Ledger{
           token: %TokenLedger{
             transfers: token_transfers
@@ -407,10 +393,9 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       }
     }
 
-    transaction = Constants.from_transaction(transaction)
-
-    send_update(self(), ArchethicPlaygroundWeb.TriggerComponent,
-      id: "trigger_component",
+    send_update(self(), socket.assigns.module_to_update,
+      id: socket.assigns.id_to_update,
+      transaction_map: Constants.from_transaction(transaction),
       transaction: transaction
     )
 

@@ -5,6 +5,7 @@ defmodule ArchethicPlayground.Application do
 
   use Application
   alias Archethic.Crypto.Ed25519.LibSodiumPort
+  alias Archethic.Utils.WebSocket.Supervisor, as: WSSupervisor
 
   @impl true
   def start(_type, _args) do
@@ -13,7 +14,8 @@ defmodule ArchethicPlayground.Application do
       # {ArchethicPlayground.Worker, arg}
       ArchethicPlaygroundWeb.Supervisor,
       {Phoenix.PubSub, [name: ArchethicPlayground.PubSub, adapter: Phoenix.PubSub.PG2]},
-      LibSodiumPort
+      LibSodiumPort,
+      WSSupervisor
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

@@ -44,7 +44,7 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
                             <% end %>
                         </.form>
                         <%= if @display_transaction_form do %>
-                            <.live_component module={CreateTransactionComponent} id="create-transaction" />
+                            <.live_component module={CreateTransactionComponent} id="create-transaction" module_to_update={__MODULE__} submit_message="Trigger" id_to_update="trigger_component" smart_contract_code={@smart_contract_code}/>
                         <% end %>
                     </div>
                 </div>
@@ -107,7 +107,7 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
     {:noreply, socket}
   end
 
-  def update(%{transaction: transaction}, socket) do
+  def update(%{transaction_map: transaction}, socket) do
     socket = assign(socket, transaction: transaction)
 
     trigger_transaction =
