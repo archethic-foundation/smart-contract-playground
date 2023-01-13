@@ -31,6 +31,7 @@ config :tailwind,
     cd: Path.expand("../assets", __DIR__)
   ]
 
+config :archethic, Archethic.Networking.PortForwarding, port_range: 49_152..65_535
 # Importing Config from the dependency
 arch_config = Path.expand("deps/archethic/config/config.exs")
 
