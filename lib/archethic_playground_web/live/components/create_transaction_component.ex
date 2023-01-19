@@ -9,6 +9,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
   alias Archethic.TransactionChain.TransactionData.TokenLedger.Transfer, as: TokenTransfer
   alias Archethic.TransactionChain.TransactionData.UCOLedger.Transfer, as: UCOTransfer
   alias Archethic.Crypto
+  alias Archethic.Utils.Regression.Playbook
 
   alias Archethic.TransactionChain.{
     Transaction,
@@ -184,6 +185,9 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
             <button href="#" phx-target={@myself} phx-click="add_authorization_key" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4">
                 Add Authorization Key
             </button>
+            <button href="#" phx-target={@myself} phx-click="add_storage_nonce_public_key" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4">
+                Load storage nonce public key
+            </button>
             </div>
             <div>
             <%= submit "Create secret", class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4" %>
@@ -195,7 +199,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
             <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="transaction-type">
                 Type
             </label>
-            <%= select f, :transaction_type, Archethic.TransactionChain.Transaction.types(), id: "transaction-type", class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= select f, :transaction_type, Archethic.TransactionChain.Transaction.types(), id: "transaction-type", value: :contract, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
             </div>
             <div class="w-full px-3">
             <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="transaction-content">
@@ -217,7 +221,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       |> assign(:recipients, [])
       |> assign(:ownerships, [])
       |> assign(:secret, "")
-      |> assign(:authorization_keys, [%{address: "", id: get_temp_id()}])
+      |> assign(:authorization_keys, [%{address: "", id: "0"}])
 
     {:ok, socket}
   end
@@ -243,7 +247,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     uco_transfer = %{
       to: transfer_uco_to,
       amount: transfer_uco_amount,
-      id: get_temp_id()
+      id: get_next_id(socket.assigns.uco_transfers)
     }
 
     uco_transfers = socket.assigns.uco_transfers
@@ -276,7 +280,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       amount: transfer_token_amount,
       token_id: transfer_token_id,
       token_address: transfer_token_address,
-      id: get_temp_id()
+      id: get_next_id(socket.assigns.token_transfers)
     }
 
     token_transfers = socket.assigns.token_transfers
@@ -298,7 +302,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       ) do
     recipient = %{
       address: recipient_address,
-      id: get_temp_id()
+      id: get_next_id(socket.assigns.recipients)
     }
 
     recipients = socket.assigns.recipients
@@ -320,7 +324,6 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       authorization_keys
       |> Enum.map(fn {id, value} ->
         %{address: value, id: id}
-        # value
       end)
 
     {:noreply, assign(socket, %{authorization_keys: authorization_keys, secret: secret})}
@@ -338,8 +341,14 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       end)
 
     ownerships = socket.assigns.ownerships
-    ownership = %{secret: secret, authorization_keys: authorization_keys, id: get_temp_id()}
-    new_authorization_keys = [%{address: "", id: get_temp_id()}]
+
+    ownership = %{
+      secret: secret,
+      authorization_keys: authorization_keys,
+      id: get_next_id(socket.assigns.ownerships)
+    }
+
+    new_authorization_keys = [%{address: "", id: "0"}]
 
     socket =
       assign(socket, %{
@@ -351,18 +360,47 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     {:noreply, socket}
   end
 
+  def handle_event("add_storage_nonce_public_key", _params, socket) do
+    %{host: host, port: port} = URI.parse(socket.assigns.endpoint)
+
+    storage_nonce_public_key =
+      Playbook.storage_nonce_public_key(host, port)
+      |> Base.encode16()
+
+    last_key = List.last(socket.assigns.authorization_keys)
+
+    {new_storage_nonce_public_key, is_drop_last?} =
+      if last_key.address == "" do
+        {%{last_key | address: storage_nonce_public_key}, true}
+      else
+        {%{
+           address: storage_nonce_public_key,
+           id: get_next_id(socket.assigns.authorization_keys)
+         }, false}
+      end
+
+    reversed_list =
+      socket.assigns.authorization_keys
+      |> Enum.reverse()
+      |> maybe_drop_last(is_drop_last?)
+
+    reversed_list = [new_storage_nonce_public_key | reversed_list]
+    authorization_keys = Enum.reverse(reversed_list)
+    {:noreply, assign(socket, :authorization_keys, authorization_keys)}
+  end
+
   def handle_event("add_authorization_key", _params, socket) do
     authorization_key = %{
       address: "",
-      id: get_temp_id()
+      id: get_next_id(socket.assigns.authorization_keys)
     }
 
     authorization_keys = socket.assigns.authorization_keys
-    {:noreply, assign(socket, :authorization_keys, [authorization_key | authorization_keys])}
+    {:noreply, assign(socket, :authorization_keys, authorization_keys ++ [authorization_key])}
   end
 
   def handle_event("create_transaction", params, socket) do
-    ownerships = build_ownerships(socket.assigns.ownerships)
+    ownerships = build_ownerships(socket.assigns.ownerships, socket.assigns.aes_key)
     token_transfers = build_token_transfers(socket.assigns.token_transfers)
     uco_transfers = build_uco_transfers(socket.assigns.uco_transfers)
     recipients = build_recipients(socket.assigns.recipients)
@@ -402,14 +440,16 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     {:noreply, socket}
   end
 
-  defp build_ownerships(ownerships) do
+  defp maybe_drop_last(list, false), do: list
+  defp maybe_drop_last(list, true), do: tl(list)
+
+  defp build_ownerships(ownerships, aes_key) do
     secret_key = :crypto.strong_rand_bytes(32)
-    aes_key = :crypto.strong_rand_bytes(32)
 
     Enum.map(ownerships, fn %{authorization_keys: authorization_keys, secret: secret} ->
       keys =
         Enum.reduce(authorization_keys, %{}, fn key, acc ->
-          key = Base.decode16!(key)
+          key = Base.decode16!(key, case: :mixed)
           Map.merge(acc, %{key => Crypto.ec_encrypt(secret_key, key)})
         end)
 
@@ -453,9 +493,13 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     end)
   end
 
-  defp get_temp_id do
-    :crypto.strong_rand_bytes(5)
-    |> Base.url_encode64()
-    |> binary_part(0, 5)
+  defp get_next_id(items) do
+    {max_id, _} =
+      items
+      |> Enum.map(fn i -> i.id end)
+      |> Enum.max(&>=/2, fn -> "0" end)
+      |> Integer.parse()
+
+    Integer.to_string(max_id + 1)
   end
 end

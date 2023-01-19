@@ -3,6 +3,7 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
 
   use ArchethicPlaygroundWeb, :live_component
 
+  alias Archethic.Crypto
   alias Archethic.Utils.Regression.Playbook
   alias ArchethicPlaygroundWeb.CreateTransactionComponent
 
@@ -14,7 +15,7 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
             <div class="absolute inset-0 px-2 sm:px-2">
                 <div class="h-full border-2 border border-gray-500 bg-black text-gray-200 p-4 overflow-y-auto">
                     <div class="block">
-                        <.live_component module={CreateTransactionComponent} id="create-transaction" module_to_update={__MODULE__} submit_message="Generate transaction" id_to_update="deploy_component" smart_contract_code={@smart_contract_code} />
+                        <.live_component module={CreateTransactionComponent} id="create-transaction" module_to_update={__MODULE__} submit_message="Generate transaction" id_to_update="deploy_component" smart_contract_code={@smart_contract_code} endpoint={@endpoint} aes_key={@aes_key}/>
                         <.form :let={f} for={:form} phx-submit="deploy_transaction" phx-target={@myself} phx-change="update_deploy" class="w-full max-w-lg">
                           <div class="flex flex-wrap -mx-3 mb-6">
                             <div class="w-full px-3">
@@ -62,6 +63,7 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
   def mount(socket) do
     socket =
       socket
+      |> assign(:aes_key, :crypto.strong_rand_bytes(32))
       |> assign(:transaction, %{})
       |> assign(:new_transaction_url, nil)
       |> assign(:error_message, nil)
@@ -95,17 +97,32 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
     %{host: host, port: port} = URI.parse(endpoint)
 
     socket =
-      case deploy(
-             socket.assigns.transaction,
-             seed,
-             host,
-             port,
-             :ed25519
-           ) do
-        {:ok, new_transaction_address} ->
-          new_transaction_address = Base.encode16(new_transaction_address)
-          new_transaction_url = "#{endpoint}/explorer/transaction/#{new_transaction_address}"
-          assign(socket, %{new_transaction_url: new_transaction_url, error_message: nil})
+      with true <-
+             validate_ownerships(
+               socket.assigns.transaction.data.ownerships,
+               seed,
+               host,
+               port,
+               socket.assigns.aes_key
+             ),
+           {:ok, new_transaction_address} <-
+             deploy(
+               socket.assigns.transaction,
+               seed,
+               host,
+               port,
+               :ed25519
+             ) do
+        new_transaction_address = Base.encode16(new_transaction_address)
+        new_transaction_url = "#{endpoint}/explorer/transaction/#{new_transaction_address}"
+        assign(socket, %{new_transaction_url: new_transaction_url, error_message: nil})
+      else
+        false ->
+          assign(socket, %{
+            new_transaction_url: nil,
+            error_message:
+              "You need to create an ownership with the transaction seed as secret and authorize node public key to let nodes generate new transaction from your smart contract"
+          })
 
         {:error, reason} ->
           assign(socket, %{new_transaction_url: nil, error_message: reason})
@@ -124,6 +141,33 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
 
     {:noreply,
      assign(socket, %{seed: seed, endpoint: endpoint, selected_network: selected_network})}
+  end
+
+  defp validate_ownerships([], _, _, _, _), do: true
+
+  defp validate_ownerships(ownerships, seed, host, port, aes_key) do
+    storage_nonce_public_key = Playbook.storage_nonce_public_key(host, port)
+
+    result =
+      Enum.find(ownerships, fn o ->
+        {:ok, decrypted_secret} = Crypto.aes_decrypt(o.secret, aes_key)
+
+        if decrypted_secret == seed do
+          result = contains_storage_nonce_public_key?(o.authorized_keys, storage_nonce_public_key)
+
+          not is_nil(result)
+        else
+          false
+        end
+      end)
+
+    not is_nil(result)
+  end
+
+  defp contains_storage_nonce_public_key?(authorized_keys, storage_nonce_public_key) do
+    authorized_keys
+    |> Map.keys()
+    |> Enum.find(fn k -> k == storage_nonce_public_key end)
   end
 
   defp deploy(
