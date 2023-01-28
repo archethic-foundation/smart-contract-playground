@@ -5,7 +5,8 @@
     <div class="flex h-screen flex-col flex-1">
     <.live_component module={HeaderComponent} id="header" />
     <!-- monaco.editor -->
-    <div class="h-screen" id="archethic-editor" phx-hook="hook_LoadEditor" phx-update="ignore" data-debounce-validation="1000">
+    <div class="h-screen" phx-update="ignore" id="archethic-editor-wrap">
+        <div class="h-full" id="archethic-editor" phx-hook="hook_LoadEditor" data-debounce-validation="1000"></div>
     </div>
     <!-- end monaco.editor -->
     <.live_component module={ConsoleComponent} id="console" trigger_transaction={@trigger_transaction} />
