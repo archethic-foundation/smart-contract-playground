@@ -339,6 +339,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       |> Enum.map(fn {_key, value} ->
         value
       end)
+      |> Enum.reject(&(&1 == ""))
 
     ownerships = socket.assigns.ownerships
 
