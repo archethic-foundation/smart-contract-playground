@@ -18,10 +18,35 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     TransactionData.UCOLedger
   }
 
+  @transaction_types_to_hide [
+    :node,
+    :node_shared_secrets,
+    :oracle,
+    :oracle_summary,
+    :node_rewards,
+    :mint_rewards,
+    :origin
+  ]
+
   def render(assigns) do
     ~H"""
       <div>
         <h2>Create a transaction</h2>
+        <.form :let={f} for={:form} phx-change="change_transaction_info" phx-target={@myself}>
+          <div class="w-full px-3">
+          <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="transaction-type">
+              Type
+          </label>
+          <%= select f, :transaction_type, list_transaction_types(), id: "transaction-type", value: @transaction_type, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+          </div>
+          <div class="w-full px-3">
+          <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="transaction-content">
+              Content
+          </label>
+          <%= textarea f, :content, id: "transaction-content", value: @content, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+          </div>
+        </.form>
+        <hr />
         <.form :let={f} for={:form} phx-submit="create_uco_transfer" phx-target={@myself}>
         <h3>UCO Transfers</h3>
             <%= if length(@uco_transfers) > 0 do %>
@@ -194,20 +219,8 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
             </div>
         </.form>
         <hr />
-        <.form :let={f} for={:form} phx-submit="create_transaction" phx-target={@myself}>
-            <div class="w-full px-3">
-            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="transaction-type">
-                Type
-            </label>
-            <%= select f, :transaction_type, Archethic.TransactionChain.Transaction.types(), id: "transaction-type", value: :contract, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
-            </div>
-            <div class="w-full px-3">
-            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="transaction-content">
-                Content
-            </label>
-            <%= textarea f, :content, id: "transaction-content", class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
-            </div>
-            <%= submit @submit_message, class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4" %>
+        <.form for={:form} phx-submit="create_transaction" phx-target={@myself}>
+          <%= submit @submit_message, class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4" %>
         </.form>
       </div>
     """
@@ -222,6 +235,8 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       |> assign(:ownerships, [])
       |> assign(:secret, "")
       |> assign(:authorization_keys, [%{address: "", id: "0"}])
+      |> assign(:content, "")
+      |> assign(:transaction_type, :contract)
 
     {:ok, socket}
   end
@@ -329,6 +344,12 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     {:noreply, assign(socket, %{authorization_keys: authorization_keys, secret: secret})}
   end
 
+  def handle_event("change_transaction_info", params, socket) do
+    %{"form" => %{"transaction_type" => transaction_type, "content" => content}} = params
+
+    {:noreply, assign(socket, %{transaction_type: transaction_type, content: content})}
+  end
+
   def handle_event(
         "create_ownership",
         %{"form" => %{"secret" => secret, "authorization_keys" => authorization_keys}},
@@ -400,25 +421,18 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     {:noreply, assign(socket, :authorization_keys, authorization_keys ++ [authorization_key])}
   end
 
-  def handle_event("create_transaction", params, socket) do
+  def handle_event("create_transaction", _params, socket) do
     ownerships = build_ownerships(socket.assigns.ownerships, socket.assigns.aes_key)
     token_transfers = build_token_transfers(socket.assigns.token_transfers)
     uco_transfers = build_uco_transfers(socket.assigns.uco_transfers)
     recipients = build_recipients(socket.assigns.recipients)
 
-    %{
-      "form" => %{
-        "content" => content,
-        "transaction_type" => type
-      }
-    } = params
-
     transaction = %Transaction{
       address: "",
-      type: String.to_existing_atom(type),
+      type: String.to_existing_atom(socket.assigns.transaction_type),
       data: %TransactionData{
         ownerships: ownerships,
-        content: content,
+        content: socket.assigns.content,
         code: socket.assigns.smart_contract_code,
         ledger: %Ledger{
           token: %TokenLedger{
@@ -502,5 +516,12 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       |> Integer.parse()
 
     Integer.to_string(max_id + 1)
+  end
+
+  defp list_transaction_types() do
+    Archethic.TransactionChain.Transaction.types()
+    |> Enum.reject(fn e ->
+      e in @transaction_types_to_hide
+    end)
   end
 end
