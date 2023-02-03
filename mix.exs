@@ -39,6 +39,7 @@ defmodule ArchethicPlayground.MixProject do
       {:phoenix_html, "~> 3.0"},
       {:phoenix_live_view, "~> 0.18"},
       {:phoenix_pubsub, "~> 2.0"},
+      {:phoenix_ecto, "~> 4.4"},
       # Added to avoid conflict with archethic-node
       {:ranch, "~> 2.1", override: true},
 

@@ -6,7 +6,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
   alias Archethic.TransactionChain.TransactionData.Ownership
   alias Archethic.Contracts.ContractConstants, as: Constants
   alias Archethic.TransactionChain.TransactionData.TokenLedger
-  alias Archethic.TransactionChain.TransactionData.TokenLedger.Transfer, as: TokenTransfer
+  alias Archethic.TransactionChain.TransactionData.TokenLedger.Transfer, as: TokenLedgerTransfer
   alias Archethic.TransactionChain.TransactionData.UCOLedger.Transfer, as: UCOTransfer
   alias Archethic.Crypto
   alias Archethic.Utils.Regression.Playbook
@@ -17,6 +17,51 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     TransactionData.Ledger,
     TransactionData.UCOLedger
   }
+
+  import Ecto.Changeset
+
+  defmodule Recipient do
+    @moduledoc false
+    alias ArchethicPlaygroundWeb.CreateTransactionComponent
+    import Ecto.Changeset
+    defstruct [:address]
+    @types %{address: :string}
+    def changeset(%__MODULE__{} = recipient, attrs) do
+      {recipient, @types}
+      |> cast(attrs, Map.keys(@types))
+      |> validate_required(:address)
+      |> CreateTransactionComponent.validate_base_16_address(:address)
+    end
+  end
+
+  defmodule UcoTransfer do
+    @moduledoc false
+    alias ArchethicPlaygroundWeb.CreateTransactionComponent
+    import Ecto.Changeset
+    defstruct [:amount, :to]
+    @types %{amount: :float, to: :string}
+    def changeset(%__MODULE__{} = uco_transfer, attrs) do
+      {uco_transfer, @types}
+      |> cast(attrs, Map.keys(@types))
+      |> validate_required([:amount, :to])
+      |> CreateTransactionComponent.validate_base_16_address(:to)
+    end
+  end
+
+  defmodule TokenTransfer do
+    @moduledoc false
+    alias ArchethicPlaygroundWeb.CreateTransactionComponent
+    import Ecto.Changeset
+    defstruct [:amount, :to, :token_address, :token_id]
+    @types %{amount: :float, to: :string, token_address: :string, token_id: :integer}
+    def changeset(%__MODULE__{} = token_transfer, attrs) do
+      {token_transfer, @types}
+      |> cast(attrs, Map.keys(@types))
+      |> validate_required([:amount, :to, :token_address, :token_id])
+      |> CreateTransactionComponent.validate_base_16_address(:to)
+      |> CreateTransactionComponent.validate_base_16_address(:token_address)
+    end
+  end
 
   def render(assigns) do
     ~H"""
@@ -37,7 +82,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
           </div>
         </.form>
         <hr />
-        <.form :let={f} for={:form} phx-submit="create_uco_transfer" phx-target={@myself}>
+        <.form :let={f} for={@changeset_uco_transfer} phx-submit="create_uco_transfer" phx-change="validate_uco_transfer" phx-target={@myself}>
         <h3>UCO Transfers</h3>
             <%= if length(@uco_transfers) > 0 do %>
             <table class="table-fixed w-full">
@@ -63,18 +108,20 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
             <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="uco-transfer-to">
                 To
             </label>
-            <%= text_input f, :transfer_uco_to, id: "uco-transfer-to", required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= text_input f, :to, id: "uco-transfer-to", required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= error_tag f, :to %>
             </div>
             <div class="w-full px-3">
             <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="uco-transfer-amount">
                 Amount
             </label>
-            <%= number_input f, :transfer_uco_amount, id: "uco-transfer-amount", required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= number_input f, :amount, id: "uco-transfer-amount", step: :any, required: true, min: 0, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= error_tag f, :amount %>
             </div>
             <%= submit "Create UCO transfer", class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4" %>
         </.form>
         <hr />
-        <.form :let={f} for={:form} phx-submit="create_token_transfer" phx-target={@myself}>
+        <.form :let={f} for={@changeset_token_transfer} phx-submit="create_token_transfer" phx-change="validate_token_transfer" phx-target={@myself}>
         <h3>Token Transfers</h3>
             <%= if length(@token_transfers) > 0 do %>
             <table class="table-fixed w-full">
@@ -104,30 +151,34 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
             <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="token-transfer-to">
                 To
             </label>
-            <%= text_input f, :transfer_token_to, id: "token-transfer-to", required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= text_input f, :to, id: "token-transfer-to", required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= error_tag f, :to %>
             </div>
             <div class="w-full px-3">
             <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="token-transfer-amount">
                 Amount
             </label>
-            <%= number_input f, :transfer_token_amount, id: "token-transfer-amount", required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= number_input f, :amount, id: "token-transfer-amount", step: :any, required: true, min: 0, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= error_tag f, :amount %>
             </div>
             <div class="w-full px-3">
             <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="token-transfer-token-address">
                 Token address
             </label>
-            <%= text_input f, :transfer_token_address, id: "token-transfer-token-address", required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= text_input f, :token_address, id: "token-transfer-token-address", required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= error_tag f, :token_address %>
             </div>
             <div class="w-full px-3">
             <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="token-transfer-token-id">
                 Token id
             </label>
-            <%= text_input f, :transfer_token_id, id: "token-transfer-token-id", required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= number_input f, :token_id, id: "token-transfer-token-id", required: true, min: 0, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= error_tag f, :token_id %>
             </div>
             <%= submit "Create Token transfer", class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4" %>
         </.form>
         <hr />
-        <.form :let={f} for={:form} phx-submit="create_recipient" phx-target={@myself}>
+        <.form :let={f} for={@changeset_recipient} id="recipient" phx-submit="create_recipient" phx-change="validate_recipient" phx-target={@myself}>
         <h3>Recipients</h3>
             <%= if length(@recipients) > 0 do %>
             <table class="table-fixed w-full">
@@ -140,8 +191,8 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
                 <tbody>
                 <%= for recipient <- @recipients do %>
                 <tr>
-                    <td class="text-center"><%= recipient.address %></td>
-                    <td class="text-center"><button href="#" phx-target={@myself} phx-click="delete_recipient" phx-value-id={recipient.id} class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline">X</button></td>
+                  <td class="text-center"><span title={recipient.address}><%= "#{String.slice(recipient.address, 0..10)}..." %></span></td>
+                  <td class="text-center"><button href="#" phx-target={@myself} phx-click="delete_recipient" phx-value-id={recipient.id} class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline">X</button></td>
                 </tr>
                 <% end %>
                 </tbody>
@@ -151,7 +202,8 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
             <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="recipient-address">
                 Recipient address
             </label>
-            <%= text_input f, :recipient_address, id: "recipient-address", required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= text_input f, :address, required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= error_tag f, :address %>
             </div>
             <%= submit "Create Recipient", class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4" %>
         </.form>
@@ -193,10 +245,13 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
                 Authorization keys
             </label>
             <%= for authorization_key <- @authorization_keys do %>
-              <%= text_input f, :authorization_key_address, id: authorization_key.id,  required: true, name: "form[authorization_keys][#{authorization_key.id}]", placeholder: "Address", value: authorization_key.address, class: "appearance-none w-10/12 bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+              <%= text_input f, :authorization_key_address, id: "auth_key_#{authorization_key.id}", required: true, name: "form[authorization_keys][#{authorization_key.id}]", placeholder: "Address", value: authorization_key.address, class: "appearance-none w-10/12 bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
               <button href="#" disabled={length(@authorization_keys) < 2} phx-target={@myself} phx-click="delete_authorization_key" phx-value-id={authorization_key.id} class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline">
                 X
               </button>
+              <%= if is_invalid_address(authorization_key.address) do %>
+                This address is invalid
+              <% end %>
             <% end %>
             </div>
             <div>
@@ -222,14 +277,19 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
   def mount(socket) do
     socket =
       socket
-      |> assign(:uco_transfers, [])
-      |> assign(:token_transfers, [])
-      |> assign(:recipients, [])
-      |> assign(:ownerships, [])
-      |> assign(:secret, "")
-      |> assign(:authorization_keys, [%{address: "", id: "0"}])
-      |> assign(:content, "")
-      |> assign(:transaction_type, "contract")
+      |> assign(%{
+        uco_transfers: [],
+        token_transfers: [],
+        recipients: [],
+        ownerships: [],
+        secret: "",
+        authorization_keys: [%{address: "", id: "0"}],
+        content: "",
+        transaction_type: "contract",
+        changeset_recipient: Recipient.changeset(%Recipient{}, %{}),
+        changeset_uco_transfer: UcoTransfer.changeset(%UcoTransfer{}, %{}),
+        changeset_token_transfer: TokenTransfer.changeset(%TokenTransfer{}, %{})
+      })
 
     {:ok, socket}
   end
@@ -244,23 +304,40 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
 
   def handle_event(
         "create_uco_transfer",
-        %{
-          "form" => %{
-            "transfer_uco_amount" => transfer_uco_amount,
-            "transfer_uco_to" => transfer_uco_to
-          }
-        },
+        %{"uco_transfer" => %{"to" => to, "amount" => amount} = uco_transfer},
         socket
       ) do
-    uco_transfer = %{
-      to: transfer_uco_to,
-      amount: transfer_uco_amount,
-      id: get_next_id(socket.assigns.uco_transfers)
-    }
+    changeset_uco_transfer = UcoTransfer.changeset(%UcoTransfer{}, uco_transfer)
 
-    uco_transfers = socket.assigns.uco_transfers
-    socket = assign(socket, :uco_transfers, [uco_transfer | uco_transfers])
-    {:noreply, socket}
+    if changeset_uco_transfer.valid? do
+      uco_transfer = %{
+        to: to,
+        amount: amount,
+        id: get_next_id(socket.assigns.uco_transfers)
+      }
+
+      uco_transfers = socket.assigns.uco_transfers
+      socket = assign(socket, :uco_transfers, [uco_transfer | uco_transfers])
+      changeset_uco_transfer = UcoTransfer.changeset(%UcoTransfer{}, %{})
+
+      {:noreply,
+       assign(socket, %{
+         changeset_uco_transfer: changeset_uco_transfer,
+         uco_transfers: [uco_transfer | uco_transfers]
+       })}
+    else
+      changeset_uco_transfer = Map.put(changeset_uco_transfer, :action, :insert)
+      {:noreply, assign(socket, changeset_uco_transfer: changeset_uco_transfer)}
+    end
+  end
+
+  def handle_event("validate_uco_transfer", %{"uco_transfer" => uco_transfer}, socket) do
+    changeset_uco_transfer =
+      %UcoTransfer{}
+      |> UcoTransfer.changeset(uco_transfer)
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign(socket, changeset_uco_transfer: changeset_uco_transfer)}
   end
 
   def handle_event("delete_token_transfer", %{"id" => token_transfer_id}, socket) do
@@ -274,25 +351,48 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
   def handle_event(
         "create_token_transfer",
         %{
-          "form" => %{
-            "transfer_token_to" => transfer_token_to,
-            "transfer_token_amount" => transfer_token_amount,
-            "transfer_token_address" => transfer_token_address,
-            "transfer_token_id" => transfer_token_id
-          }
+          "token_transfer" =>
+            %{
+              "to" => transfer_token_to,
+              "amount" => transfer_token_amount,
+              "token_address" => transfer_token_address,
+              "token_id" => transfer_token_id
+            } = token_transfer
         },
         socket
       ) do
-    token_transfer = %{
-      to: transfer_token_to,
-      amount: transfer_token_amount,
-      token_id: transfer_token_id,
-      token_address: transfer_token_address,
-      id: get_next_id(socket.assigns.token_transfers)
-    }
+    changeset_token_transfer = TokenTransfer.changeset(%TokenTransfer{}, token_transfer)
 
-    token_transfers = socket.assigns.token_transfers
-    {:noreply, assign(socket, :token_transfers, [token_transfer | token_transfers])}
+    if changeset_token_transfer.valid? do
+      token_transfer = %{
+        to: transfer_token_to,
+        amount: transfer_token_amount,
+        token_id: transfer_token_id,
+        token_address: transfer_token_address,
+        id: get_next_id(socket.assigns.token_transfers)
+      }
+
+      token_transfers = socket.assigns.token_transfers
+      changeset_token_transfer = TokenTransfer.changeset(%TokenTransfer{}, %{})
+
+      {:noreply,
+       assign(socket, %{
+         changeset_token_transfer: changeset_token_transfer,
+         token_transfers: [token_transfer | token_transfers]
+       })}
+    else
+      changeset_token_transfer = Map.put(changeset_token_transfer, :action, :insert)
+      {:noreply, assign(socket, changeset_token_transfer: changeset_token_transfer)}
+    end
+  end
+
+  def handle_event("validate_token_transfer", %{"token_transfer" => token_transfer}, socket) do
+    changeset_token_transfer =
+      %TokenTransfer{}
+      |> TokenTransfer.changeset(token_transfer)
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign(socket, changeset_token_transfer: changeset_token_transfer)}
   end
 
   def handle_event("delete_recipient", %{"id" => recipient_id}, socket) do
@@ -305,16 +405,38 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
 
   def handle_event(
         "create_recipient",
-        %{"form" => %{"recipient_address" => recipient_address}},
+        %{"recipient" => %{"address" => recipient_address} = recipient},
         socket
       ) do
-    recipient = %{
-      address: recipient_address,
-      id: get_next_id(socket.assigns.recipients)
-    }
+    changeset_recipient = Recipient.changeset(%Recipient{}, recipient)
 
-    recipients = socket.assigns.recipients
-    {:noreply, assign(socket, :recipients, [recipient | recipients])}
+    if changeset_recipient.valid? do
+      recipient = %{
+        address: recipient_address,
+        id: get_next_id(socket.assigns.recipients)
+      }
+
+      recipients = socket.assigns.recipients
+      changeset_recipient = Recipient.changeset(%Recipient{}, %{})
+
+      {:noreply,
+       assign(socket, %{
+         changeset_recipient: changeset_recipient,
+         recipients: [recipient | recipients]
+       })}
+    else
+      changeset_recipient = Map.put(changeset_recipient, :action, :insert)
+      {:noreply, assign(socket, changeset_recipient: changeset_recipient)}
+    end
+  end
+
+  def handle_event("validate_recipient", %{"recipient" => recipient}, socket) do
+    changeset_recipient =
+      %Recipient{}
+      |> Recipient.changeset(recipient)
+      |> Map.put(:action, :validate)
+
+    {:noreply, assign(socket, changeset_recipient: changeset_recipient)}
   end
 
   def handle_event("delete_ownership", %{"id" => ownership_id}, socket) do
@@ -356,29 +478,34 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
         %{"form" => %{"secret" => secret, "authorization_keys" => authorization_keys}},
         socket
       ) do
-    authorization_keys =
-      authorization_keys
-      |> Enum.map(fn {_key, value} ->
-        value
-      end)
-      |> Enum.reject(&(&1 == ""))
-
-    ownerships = socket.assigns.ownerships
-
-    ownership = %{
-      secret: secret,
-      authorization_keys: authorization_keys,
-      id: get_next_id(socket.assigns.ownerships)
-    }
-
-    new_authorization_keys = [%{address: "", id: "0"}]
-
+    # stop if at least one authorization key isn't correct
     socket =
-      assign(socket, %{
-        ownerships: [ownership | ownerships],
-        authorization_keys: new_authorization_keys,
-        secret: ""
-      })
+      if Enum.any?(authorization_keys, fn {_key, value} -> is_invalid_address(value) end) do
+        socket
+      else
+        authorization_keys =
+          authorization_keys
+          |> Enum.map(fn {_key, value} ->
+            value
+          end)
+          |> Enum.reject(&(&1 == ""))
+
+        ownerships = socket.assigns.ownerships
+
+        ownership = %{
+          secret: secret,
+          authorization_keys: authorization_keys,
+          id: get_next_id(socket.assigns.ownerships)
+        }
+
+        new_authorization_keys = [%{address: "", id: "0"}]
+
+        assign(socket, %{
+          ownerships: [ownership | ownerships],
+          authorization_keys: new_authorization_keys,
+          secret: ""
+        })
+      end
 
     {:noreply, socket}
   end
@@ -456,6 +583,16 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     {:noreply, socket}
   end
 
+  def validate_base_16_address(changeset, field) do
+    with value <- fetch_field!(changeset, field),
+         false <- is_nil(value),
+         true <- is_invalid_address(value) do
+      add_error(changeset, field, "is not a valid address")
+    else
+      _ -> changeset
+    end
+  end
+
   defp maybe_drop_last(list, false), do: list
   defp maybe_drop_last(list, true), do: tl(list)
 
@@ -480,12 +617,13 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     token_transfers
     |> Enum.map(fn token_transfer ->
       {amount, _} = Integer.parse(token_transfer.amount)
+      {token_id, _} = Integer.parse(token_transfer.token_id)
 
-      %TokenTransfer{
+      %TokenLedgerTransfer{
         amount: amount,
         to: Base.decode16!(token_transfer.to),
         token_address: Base.decode16!(token_transfer.token_address),
-        token_id: token_transfer.token_id
+        token_id: token_id
       }
     end)
   end
@@ -505,7 +643,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
   defp build_recipients(recipients) do
     recipients
     |> Enum.map(fn recipient ->
-      Base.decode16!(recipient)
+      Base.decode16!(recipient.address)
     end)
   end
 
@@ -521,5 +659,9 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
 
   defp list_transaction_types() do
     Enum.reject(Archethic.TransactionChain.Transaction.types(), &Transaction.network_type?/1)
+  end
+
+  defp is_invalid_address(authorization_key_address) do
+    Base.decode16(authorization_key_address) == :error
   end
 end

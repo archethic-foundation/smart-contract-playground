@@ -49,7 +49,7 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
                             <% end %>
                             <%= if not is_nil(@error_message) do %>
                               The transaction has failed: <br />
-                              <%= @error_message %>
+                              <%= inspect(@error_message) %>
                             <% end %>
                           </div>
                         </.form>
