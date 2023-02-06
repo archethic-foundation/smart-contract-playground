@@ -69,16 +69,16 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
         <h2>Create a transaction</h2>
         <.form :let={f} for={:form} phx-change="change_transaction_info" phx-target={@myself}>
           <div class="w-full px-3">
-          <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="transaction-type">
+          <label class="block uppercase tracking-wide text-xs font-bold mb-2" for={"#{@id_to_update}_transaction-type"}>
               Type
           </label>
-          <%= select f, :transaction_type, list_transaction_types(), id: "transaction-type", value: @transaction_type, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+          <%= select f, :transaction_type, list_transaction_types(), id: "#{@id_to_update}_transaction-type", value: @transaction_type, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
           </div>
           <div class="w-full px-3">
-          <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="transaction-content">
+          <label class="block uppercase tracking-wide text-xs font-bold mb-2" for={"#{@id_to_update}_transaction-content"}>
               Content
           </label>
-          <%= textarea f, :content, id: "transaction-content", value: @content, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+          <%= textarea f, :content, id: "#{@id_to_update}_transaction-content", value: @content, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
           </div>
         </.form>
         <hr />
@@ -95,7 +95,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
                 </thead>
                 <tbody>
                 <%= for uco_transfer <- @uco_transfers do %>
-                <tr id={uco_transfer.id}>
+                <tr id={"#{@id_to_update}_#{uco_transfer.id}"}>
                 <td class="text-center"><%= uco_transfer.amount %></td>
                 <td class="text-center"><span title={uco_transfer.to}><%= "#{String.slice(uco_transfer.to, 0..5)}..." %></span></td>
                 <td class="text-center"><button href="#" phx-target={@myself} phx-click="delete_uco_transfer" phx-value-id={uco_transfer.id} class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline">X</button></td>
@@ -105,17 +105,17 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
             </table>
             <% end %>
             <div class="w-full px-3">
-            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="uco-transfer-to">
+            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for={"#{@id_to_update}_uco-transfer-to"}>
                 To
             </label>
-            <%= text_input f, :to, id: "uco-transfer-to", required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= text_input f, :to, id: "#{@id_to_update}_uco-transfer-to", required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
             <%= error_tag f, :to %>
             </div>
             <div class="w-full px-3">
-            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="uco-transfer-amount">
+            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for={"#{@id_to_update}_uco-transfer-amount"}>
                 Amount
             </label>
-            <%= number_input f, :amount, id: "uco-transfer-amount", step: :any, required: true, min: 0, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= number_input f, :amount, id: "#{@id_to_update}_uco-transfer-amount", step: :any, required: true, min: 0, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
             <%= error_tag f, :amount %>
             </div>
             <%= submit "Create UCO transfer", class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4" %>
@@ -148,37 +148,37 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
             </table>
             <% end %>
             <div class="w-full px-3">
-            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="token-transfer-to">
+            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for={"#{@id_to_update}_token-transfer-to"}>
                 To
             </label>
-            <%= text_input f, :to, id: "token-transfer-to", required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= text_input f, :to, id: "#{@id_to_update}_token-transfer-to", required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
             <%= error_tag f, :to %>
             </div>
             <div class="w-full px-3">
-            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="token-transfer-amount">
+            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for={"#{@id_to_update}_token-transfer-amount"}>
                 Amount
             </label>
-            <%= number_input f, :amount, id: "token-transfer-amount", step: :any, required: true, min: 0, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= number_input f, :amount, id: "#{@id_to_update}_token-transfer-amount", step: :any, required: true, min: 0, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
             <%= error_tag f, :amount %>
             </div>
             <div class="w-full px-3">
-            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="token-transfer-token-address">
+            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for={"#{@id_to_update}_token-transfer-token-address"}>
                 Token address
             </label>
-            <%= text_input f, :token_address, id: "token-transfer-token-address", required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= text_input f, :token_address, id: "#{@id_to_update}_token-transfer-token-address", required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
             <%= error_tag f, :token_address %>
             </div>
             <div class="w-full px-3">
-            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="token-transfer-token-id">
+            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for={"#{@id_to_update}_token-transfer-token-id"}>
                 Token id
             </label>
-            <%= number_input f, :token_id, id: "token-transfer-token-id", required: true, min: 0, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= number_input f, :token_id, id: "#{@id_to_update}_token-transfer-token-id", required: true, min: 0, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
             <%= error_tag f, :token_id %>
             </div>
             <%= submit "Create Token transfer", class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4" %>
         </.form>
         <hr />
-        <.form :let={f} for={@changeset_recipient} id="recipient" phx-submit="create_recipient" phx-change="validate_recipient" phx-target={@myself}>
+        <.form :let={f} for={@changeset_recipient} id={"#{@id_to_update}_recipient"} phx-submit="create_recipient" phx-change="validate_recipient" phx-target={@myself}>
         <h3>Recipients</h3>
             <%= if length(@recipients) > 0 do %>
             <table class="table-fixed w-full">
@@ -199,7 +199,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
             </table>
             <% end %>
             <div class="w-full px-3">
-            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="recipient-address">
+            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for={"#{@id_to_update}_recipient-address"}>
                 Recipient address
             </label>
             <%= text_input f, :address, required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
@@ -235,17 +235,17 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
             </table>
             <% end %>
             <div class="w-full px-3">
-            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="ownership-secret">
+            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for={"#{@id_to_update}_ownership-secret"}>
                 Secret
             </label>
-            <%= password_input f, :secret, id: "ownership-secret", value: @secret, required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <%= password_input f, :secret, id: "#{@id_to_update}_ownership-secret", value: @secret, required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
             </div>
             <div class="w-full px-3">
             <label class="block uppercase tracking-wide text-xs font-bold mb-2">
                 Authorization keys
             </label>
             <%= for authorization_key <- @authorization_keys do %>
-              <%= text_input f, :authorization_key_address, id: "auth_key_#{authorization_key.id}", required: true, name: "form[authorization_keys][#{authorization_key.id}]", placeholder: "Address", value: authorization_key.address, class: "appearance-none w-10/12 bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+              <%= text_input f, :authorization_key_address, id: "#{@id_to_update}_auth_key_#{authorization_key.id}", required: true, name: "form[authorization_keys][#{authorization_key.id}]", placeholder: "Address", value: authorization_key.address, class: "appearance-none w-10/12 bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
               <button href="#" disabled={length(@authorization_keys) < 2} phx-target={@myself} phx-click="delete_authorization_key" phx-value-id={authorization_key.id} class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline">
                 X
               </button>
@@ -267,9 +267,6 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
             </div>
         </.form>
         <hr />
-        <.form for={:form} phx-submit="create_transaction" phx-target={@myself}>
-          <%= submit @submit_message, class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4" %>
-        </.form>
       </div>
     """
   end
@@ -320,11 +317,14 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       socket = assign(socket, :uco_transfers, [uco_transfer | uco_transfers])
       changeset_uco_transfer = UcoTransfer.changeset(%UcoTransfer{}, %{})
 
-      {:noreply,
-       assign(socket, %{
-         changeset_uco_transfer: changeset_uco_transfer,
-         uco_transfers: [uco_transfer | uco_transfers]
-       })}
+      socket =
+        assign(socket, %{
+          changeset_uco_transfer: changeset_uco_transfer,
+          uco_transfers: [uco_transfer | uco_transfers]
+        })
+
+      create_transaction(socket)
+      {:noreply, socket}
     else
       changeset_uco_transfer = Map.put(changeset_uco_transfer, :action, :insert)
       {:noreply, assign(socket, changeset_uco_transfer: changeset_uco_transfer)}
@@ -375,11 +375,14 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       token_transfers = socket.assigns.token_transfers
       changeset_token_transfer = TokenTransfer.changeset(%TokenTransfer{}, %{})
 
-      {:noreply,
-       assign(socket, %{
-         changeset_token_transfer: changeset_token_transfer,
-         token_transfers: [token_transfer | token_transfers]
-       })}
+      socket =
+        assign(socket, %{
+          changeset_token_transfer: changeset_token_transfer,
+          token_transfers: [token_transfer | token_transfers]
+        })
+
+      create_transaction(socket)
+      {:noreply, socket}
     else
       changeset_token_transfer = Map.put(changeset_token_transfer, :action, :insert)
       {:noreply, assign(socket, changeset_token_transfer: changeset_token_transfer)}
@@ -419,11 +422,14 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       recipients = socket.assigns.recipients
       changeset_recipient = Recipient.changeset(%Recipient{}, %{})
 
-      {:noreply,
-       assign(socket, %{
-         changeset_recipient: changeset_recipient,
-         recipients: [recipient | recipients]
-       })}
+      socket =
+        assign(socket, %{
+          changeset_recipient: changeset_recipient,
+          recipients: [recipient | recipients]
+        })
+
+      create_transaction(socket)
+      {:noreply, socket}
     else
       changeset_recipient = Map.put(changeset_recipient, :action, :insert)
       {:noreply, assign(socket, changeset_recipient: changeset_recipient)}
@@ -469,8 +475,9 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
 
   def handle_event("change_transaction_info", params, socket) do
     %{"form" => %{"transaction_type" => transaction_type, "content" => content}} = params
-
-    {:noreply, assign(socket, %{transaction_type: transaction_type, content: content})}
+    socket = assign(socket, %{transaction_type: transaction_type, content: content})
+    create_transaction(socket)
+    {:noreply, socket}
   end
 
   def handle_event(
@@ -500,11 +507,15 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
 
         new_authorization_keys = [%{address: "", id: "0"}]
 
-        assign(socket, %{
-          ownerships: [ownership | ownerships],
-          authorization_keys: new_authorization_keys,
-          secret: ""
-        })
+        socket =
+          assign(socket, %{
+            ownerships: [ownership | ownerships],
+            authorization_keys: new_authorization_keys,
+            secret: ""
+          })
+
+        create_transaction(socket)
+        socket
       end
 
     {:noreply, socket}
@@ -549,7 +560,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     {:noreply, assign(socket, :authorization_keys, authorization_keys ++ [authorization_key])}
   end
 
-  def handle_event("create_transaction", _params, socket) do
+  defp create_transaction(socket) do
     ownerships = build_ownerships(socket.assigns.ownerships, socket.assigns.aes_key)
     token_transfers = build_token_transfers(socket.assigns.token_transfers)
     uco_transfers = build_uco_transfers(socket.assigns.uco_transfers)
@@ -579,8 +590,6 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       transaction_map: Constants.from_transaction(transaction),
       transaction: transaction
     )
-
-    {:noreply, socket}
   end
 
   def validate_base_16_address(changeset, field) do

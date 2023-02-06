@@ -40,11 +40,16 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
                             <% end %>
                             </div>
                             <%= unless @display_transaction_form do %>
-                            <%= submit "Trigger", disabled: @selected_trigger == "", class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" %>
+                              <%= submit "Trigger", disabled: @selected_trigger == "", class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" %>
                             <% end %>
                         </.form>
                         <%= if @display_transaction_form do %>
-                            <.live_component module={CreateTransactionComponent} id="create-transaction" module_to_update={__MODULE__} submit_message="Trigger" id_to_update="trigger_component" smart_contract_code={@smart_contract_code}/>
+                          <.live_component module={CreateTransactionComponent} id="create-transaction-trigger" module_to_update={__MODULE__} id_to_update="trigger_component" smart_contract_code={@smart_contract_code} aes_key={@aes_key} />
+                          <div class="mt-5">
+                            <a phx-click="execute_transaction" phx-target={@myself} class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" href="#">
+                              Trigger
+                            </a>
+                          </div>
                         <% end %>
                     </div>
                 </div>
@@ -61,6 +66,7 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
       |> assign(:display_oracle_form, false)
       |> assign(:selected_trigger, "")
       |> assign(:transaction, %{})
+      |> assign(:aes_key, :crypto.strong_rand_bytes(32))
 
     {:ok, socket}
   end
@@ -107,9 +113,7 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
     {:noreply, socket}
   end
 
-  def update(%{transaction_map: transaction}, socket) do
-    socket = assign(socket, transaction: transaction)
-
+  def handle_event("execute_transaction", _, socket) do
     trigger_transaction =
       execute_contract(
         :transaction,
@@ -119,6 +123,11 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
       )
 
     send(self(), {:trigger_transaction, trigger_transaction})
+    {:noreply, socket}
+  end
+
+  def update(%{transaction_map: transaction}, socket) do
+    socket = assign(socket, transaction: transaction)
     {:ok, socket}
   end
 

@@ -15,7 +15,7 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
             <div class="absolute inset-0 px-2 sm:px-2">
                 <div class="h-full border-2 border border-gray-500 bg-black text-gray-200 p-4 overflow-y-auto">
                     <div class="block">
-                        <.live_component module={CreateTransactionComponent} id="create-transaction" module_to_update={__MODULE__} submit_message="Generate transaction" id_to_update="deploy_component" smart_contract_code={@smart_contract_code} endpoint={@endpoint} aes_key={@aes_key}/>
+                        <.live_component module={CreateTransactionComponent} id="create-transaction-deploy" module_to_update={__MODULE__} id_to_update="deploy_component" smart_contract_code={@smart_contract_code} endpoint={@endpoint} aes_key={@aes_key}/>
                         <hr />
                         <.form :let={f} for={:form} phx-submit="deploy_transaction" phx-target={@myself} phx-change="update_deploy" class="w-full max-w-lg">
                           <div class="flex flex-wrap -mx-3 mb-6">
