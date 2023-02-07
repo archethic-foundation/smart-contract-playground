@@ -35,7 +35,7 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
                                 <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="oracle-content">
                                     Oracle content
                                 </label>
-                                <%= text_input f, :oracle_content, id: "oracle-content", class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500"  %>
+                                <%= text_input f, :oracle_content, id: "oracle-content", required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500"  %>
                                 </div>
                             <% end %>
                             </div>
@@ -153,7 +153,7 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
       "contract" => contract_constants
     }
 
-    ActionInterpreter.execute(Map.fetch!(triggers, type), constants)
+    call_execute(Map.fetch!(triggers, type), constants)
   end
 
   def execute_contract(
@@ -169,21 +169,27 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
         %{"form" => %{"oracle_content" => oracle_content}},
         _socket
       ) do
-    transaction =
-      Constants.from_transaction(%Transaction{
-        address: "",
-        type: :oracle,
-        data: %TransactionData{
-          content: oracle_content
+    case Jason.decode(oracle_content) do
+      {:ok, _} ->
+        transaction =
+          Constants.from_transaction(%Transaction{
+            address: "",
+            type: :oracle,
+            data: %TransactionData{
+              content: oracle_content
+            }
+          })
+
+        constants = %{
+          "contract" => contract_constants,
+          "transaction" => transaction
         }
-      })
 
-    constants = %{
-      "contract" => contract_constants,
-      "transaction" => transaction
-    }
+        call_execute(Map.fetch!(triggers, :oracle), constants)
 
-    ActionInterpreter.execute(Map.fetch!(triggers, :oracle), constants)
+      {:error, _} ->
+        "Error: the oracle content should be a JSON object"
+    end
   end
 
   def execute_contract(
@@ -212,6 +218,14 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
       "transaction" => socket.assigns.transaction
     }
 
-    ActionInterpreter.execute(Map.fetch!(triggers, :transaction), constants)
+    call_execute(Map.fetch!(triggers, :transaction), constants)
+  end
+
+  defp call_execute(type, constants) do
+    try do
+      ActionInterpreter.execute(type, constants)
+    rescue
+      e -> e
+    end
   end
 end

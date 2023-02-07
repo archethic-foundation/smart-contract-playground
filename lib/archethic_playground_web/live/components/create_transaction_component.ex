@@ -522,10 +522,11 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
   end
 
   def handle_event("add_storage_nonce_public_key", _params, socket) do
-    %{host: host, port: port} = URI.parse(socket.assigns.endpoint)
+    %{host: host, port: port, scheme: scheme} = URI.parse(socket.assigns.endpoint)
+    proto = String.to_existing_atom(scheme)
 
     storage_nonce_public_key =
-      Playbook.storage_nonce_public_key(host, port)
+      Playbook.storage_nonce_public_key(host, port, proto)
       |> Base.encode16()
 
     last_key = List.last(socket.assigns.authorization_keys)
@@ -671,6 +672,9 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
   end
 
   defp is_invalid_address(authorization_key_address) do
-    Base.decode16(authorization_key_address) == :error
+    case Base.decode16(authorization_key_address) do
+      :error -> true
+      {:ok, decoded} -> not Crypto.valid_address?(decoded)
+    end
   end
 end

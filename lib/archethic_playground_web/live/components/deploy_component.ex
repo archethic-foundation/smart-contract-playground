@@ -95,7 +95,8 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
         %{"form" => %{"seed" => seed, "endpoint" => endpoint}},
         socket
       ) do
-    %{host: host, port: port} = URI.parse(endpoint)
+    %{host: host, port: port, scheme: scheme} = URI.parse(endpoint)
+    proto = String.to_existing_atom(scheme)
 
     socket =
       with true <-
@@ -104,6 +105,7 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
                seed,
                host,
                port,
+               proto,
                socket.assigns.aes_key
              ),
            {:ok, new_transaction_address} <-
@@ -112,7 +114,8 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
                seed,
                host,
                port,
-               :ed25519
+               :ed25519,
+               proto
              ) do
         new_transaction_address = Base.encode16(new_transaction_address)
         new_transaction_url = "#{endpoint}/explorer/transaction/#{new_transaction_address}"
@@ -144,10 +147,10 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
      assign(socket, %{seed: seed, endpoint: endpoint, selected_network: selected_network})}
   end
 
-  defp validate_ownerships([], _, _, _, _), do: true
+  defp validate_ownerships([], _, _, _, _, _), do: true
 
-  defp validate_ownerships(ownerships, seed, host, port, aes_key) do
-    storage_nonce_public_key = Playbook.storage_nonce_public_key(host, port)
+  defp validate_ownerships(ownerships, seed, host, port, proto, aes_key) do
+    storage_nonce_public_key = Playbook.storage_nonce_public_key(host, port, proto)
 
     result =
       Enum.find(ownerships, fn o ->
@@ -176,7 +179,8 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
          seed,
          host,
          port,
-         curve
+         curve,
+         proto
        ) do
     Playbook.send_transaction_with_await_replication(
       seed,
@@ -184,7 +188,8 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
       transaction.data,
       host,
       port,
-      curve
+      curve,
+      proto
     )
   end
 end
