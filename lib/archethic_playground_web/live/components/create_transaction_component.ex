@@ -21,7 +21,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     ~H"""
       <div>
         <h2>Create a transaction</h2>
-        <.form let={f} for={:form} phx-submit="create_uco_transfer" phx-target={@myself}>
+        <.form :let={f} for={:form} phx-submit="create_uco_transfer" phx-target={@myself}>
         <h3>UCO Transfers</h3>
             <%= if length(@uco_transfers) > 0 do %>
             <table class="table-fixed w-full">
@@ -58,7 +58,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
             <%= submit "Create UCO transfer", class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4" %>
         </.form>
         <hr />
-        <.form let={f} for={:form} phx-submit="create_token_transfer" phx-target={@myself}>
+        <.form :let={f} for={:form} phx-submit="create_token_transfer" phx-target={@myself}>
         <h3>Token Transfers</h3>
             <%= if length(@token_transfers) > 0 do %>
             <table class="table-fixed w-full">
@@ -111,7 +111,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
             <%= submit "Create Token transfer", class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4" %>
         </.form>
         <hr />
-        <.form let={f} for={:form} phx-submit="create_recipient" phx-target={@myself}>
+        <.form :let={f} for={:form} phx-submit="create_recipient" phx-target={@myself}>
         <h3>Recipients</h3>
             <%= if length(@recipients) > 0 do %>
             <table class="table-fixed w-full">
@@ -140,7 +140,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
             <%= submit "Create Recipient", class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4" %>
         </.form>
         <hr />
-        <.form let={f} for={:form} phx-submit="create_ownership" phx-target={@myself} phx-change="change_ownership">
+        <.form :let={f} for={:form} phx-submit="create_ownership" phx-target={@myself} phx-change="change_ownership">
         <h3>Ownerships</h3>
         <%= if length(@ownerships) > 0 do %>
             <table class="table-fixed w-full">
@@ -190,7 +190,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
             </div>
         </.form>
         <hr />
-        <.form let={f} for={:form} phx-submit="create_transaction" phx-target={@myself}>
+        <.form :let={f} for={:form} phx-submit="create_transaction" phx-target={@myself}>
             <div class="w-full px-3">
             <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="transaction-address">
                 Address
