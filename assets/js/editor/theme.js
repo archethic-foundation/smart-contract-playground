@@ -5,7 +5,16 @@ export function setTheme(monaco) {
   monaco.editor.defineTheme('archethicTheme', {
     base: 'vs-dark',
     inherit: true,
-    rules: [],
+    rules: [
+      {
+        token: 'keyword.archethicFunction', 
+        foreground: 'DCDCAA'
+      },
+      {
+        token: 'keyword.archethicDeclaration', 
+        foreground: 'C586C0'
+      },
+    ],
     colors: {
       'editor.foreground': ''
     }

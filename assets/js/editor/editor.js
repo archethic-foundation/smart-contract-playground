@@ -5,18 +5,17 @@ import { setTheme } from './theme';
 
 async function loadEditor() {
   let newEditor = await EditorLoader.init()
-    .then((monaco) => {
-
+    .then(async (monaco) => {
       // Monaco Configs
       // Not necessary right now, but for future use
-      // setLanguage(monaco);
-      // setTheme(monaco);
+      await setLanguage(monaco);
+      setTheme(monaco);
 
       // Create Monaco Instance
       const uri = window.monaco.Uri.parse("inmemory://smart-contract-elixir");
       const model = window.monaco.editor.createModel("# Smart Contracts Editor for Archethic", "elixir", uri);
       let editor = monaco.editor.create(document.getElementById('archethic-editor'), {
-        theme: 'vs-dark',
+        theme: 'archethicTheme',
         fontSize: 16,
         tabSize: 2,
         lineNumbersMinChars: 3,
@@ -27,12 +26,12 @@ async function loadEditor() {
           useShadows: false,
         },
         mouseWheelZoom: true,
-        model: model
+        model: model,
+        automaticLayout: true
       });
       return {editor, monaco};
     });
 
   return newEditor;
 }
-
 export { loadEditor };
