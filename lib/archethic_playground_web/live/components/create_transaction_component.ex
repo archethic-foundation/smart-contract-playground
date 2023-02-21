@@ -249,7 +249,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
               <button href="#" disabled={length(@authorization_keys) < 2} phx-target={@myself} phx-click="delete_authorization_key" phx-value-id={authorization_key.id} class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline">
                 X
               </button>
-              <%= if is_invalid_address(authorization_key.address) do %>
+              <%= if is_invalid_public_key(authorization_key.address) do %>
                 This address is invalid
               <% end %>
             <% end %>
@@ -487,7 +487,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       ) do
     # stop if at least one authorization key isn't correct
     socket =
-      if Enum.any?(authorization_keys, fn {_key, value} -> is_invalid_address(value) end) do
+      if Enum.any?(authorization_keys, fn {_key, value} -> is_invalid_public_key(value) end) do
         socket
       else
         authorization_keys =
@@ -675,6 +675,13 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     case Base.decode16(authorization_key_address) do
       :error -> true
       {:ok, decoded} -> not Crypto.valid_address?(decoded)
+    end
+  end
+
+  defp is_invalid_public_key(public_key) do
+    case Base.decode16(public_key) do
+      :error -> true
+      {:ok, decoded} -> not Crypto.valid_public_key?(decoded)
     end
   end
 end
