@@ -15,9 +15,7 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
             <div class="absolute inset-0 px-2 sm:px-2">
                 <div class="h-full border-2 border border-gray-500 bg-black text-gray-200 p-4 overflow-y-auto">
                     <div class="block">
-                        <.live_component module={CreateTransactionComponent} id="create-transaction-deploy" module_to_update={__MODULE__} id_to_update="deploy_component" smart_contract_code={@smart_contract_code} endpoint={@endpoint} aes_key={@aes_key}/>
-                        <hr />
-                        <.form :let={f} for={:form} phx-submit="deploy_transaction" phx-target={@myself} phx-change="update_deploy" class="w-full max-w-lg">
+                        <.form :let={f} for={%{}} as={:form} phx-target={@myself} phx-change="update_selected_network" class="w-full max-w-lg">
                           <div class="flex flex-wrap -mx-3 mb-6">
                             <div class="w-full px-3">
                               <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="selected_network">
@@ -31,7 +29,12 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
                               </label>
                               <%= text_input f, :endpoint, value: @endpoint, id: "endpoint", required: true, phx_hook: "hook_UpdateOtherNetwork", class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500"  %>
                             </div>
-
+                          </div>
+                        </.form>
+                        <.live_component module={CreateTransactionComponent} id="create-transaction-deploy" module_to_update={__MODULE__} id_to_update="deploy_component" smart_contract_code={@smart_contract_code} endpoint={@endpoint} aes_key={@aes_key}/>
+                        <hr />
+                        <.form :let={f} for={%{}} as={:form} phx-submit="deploy_transaction" phx-target={@myself} phx-change="update_deploy" class="w-full max-w-lg">
+                          <div class="flex flex-wrap -mx-3 mb-6">
                             <div class="w-full px-3">
                               <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="seed">
                                   Seed
@@ -92,9 +95,11 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
 
   def handle_event(
         "deploy_transaction",
-        %{"form" => %{"seed" => seed, "endpoint" => endpoint}},
+        %{"form" => %{"seed" => seed}},
         socket
       ) do
+
+    endpoint = socket.assigns.endpoint
     %{host: host, port: port, scheme: scheme} = URI.parse(endpoint)
     proto = String.to_existing_atom(scheme)
 
@@ -140,11 +145,19 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
   end
 
   def handle_event("update_deploy", params, socket) do
-    %{"form" => %{"seed" => seed, "endpoint" => endpoint, "selected_network" => selected_network}} =
+    %{"form" => %{"seed" => seed}} =
       params
 
     {:noreply,
-     assign(socket, %{seed: seed, endpoint: endpoint, selected_network: selected_network})}
+     assign(socket, %{seed: seed})}
+  end
+
+  def handle_event("update_selected_network", params, socket) do
+    %{"form" => %{"endpoint" => endpoint, "selected_network" => selected_network}} =
+      params
+
+    {:noreply,
+     assign(socket, %{endpoint: endpoint, selected_network: selected_network})}
   end
 
   defp validate_ownerships([], _, _, _, _, _), do: true

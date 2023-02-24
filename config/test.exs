@@ -5,5 +5,3 @@ import Config
 config :archethic, ArchethicPlaygroundWeb.Endpoint,
   http: [port: 4002],
   server: false
-
-config :archethic, Archethic.Networking.PortForwarding, port_range: 49_152..65_535

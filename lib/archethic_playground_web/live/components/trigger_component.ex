@@ -21,7 +21,7 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
             <div class="absolute inset-0 px-2 sm:px-2">
                 <div class="h-full border-2 border border-gray-500 bg-black text-gray-200 p-4 overflow-y-auto">
                     <div class="block">
-                        <.form :let={f} for={:form} phx-submit="execute_action" phx-change="update_form" phx-target={@myself} class="w-full max-w-lg">
+                        <.form :let={f} for={%{}} as={:form} phx-submit="execute_action" phx-change="update_form" phx-target={@myself} class="w-full max-w-lg">
                             <div class="flex flex-wrap -mx-3 mb-6">
                             <div class="w-full px-3">
                                 <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="triggers">

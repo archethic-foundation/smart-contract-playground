@@ -67,7 +67,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     ~H"""
       <div>
         <h2>Create a transaction</h2>
-        <.form :let={f} for={:form} phx-change="change_transaction_info" phx-target={@myself}>
+        <.form :let={f} for={%{}} as={:form} phx-change="change_transaction_info" phx-target={@myself}>
           <div class="w-full px-3">
           <label class="block uppercase tracking-wide text-xs font-bold mb-2" for={"#{@id_to_update}_transaction-type"}>
               Type
@@ -208,7 +208,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
             <%= submit "Create Recipient", class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4" %>
         </.form>
         <hr />
-        <.form :let={f} for={:form} phx-submit="create_ownership" phx-target={@myself} phx-change="change_ownership">
+        <.form :let={f} for={%{}} as={:form} phx-submit="create_ownership" phx-target={@myself} phx-change="change_ownership">
         <h3>Ownerships</h3>
         <%= if length(@ownerships) > 0 do %>
             <table class="table-fixed w-full">
@@ -308,7 +308,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
 
     if changeset_uco_transfer.valid? do
       uco_transfer = %{
-        to: to,
+        to: String.upcase(to),
         amount: amount,
         id: get_next_id(socket.assigns.uco_transfers)
       }
@@ -365,10 +365,10 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
 
     if changeset_token_transfer.valid? do
       token_transfer = %{
-        to: transfer_token_to,
+        to: String.upcase(transfer_token_to),
         amount: transfer_token_amount,
         token_id: transfer_token_id,
-        token_address: transfer_token_address,
+        token_address: String.upcase(transfer_token_address),
         id: get_next_id(socket.assigns.token_transfers)
       }
 
@@ -415,7 +415,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
 
     if changeset_recipient.valid? do
       recipient = %{
-        address: recipient_address,
+        address: String.upcase(recipient_address),
         id: get_next_id(socket.assigns.recipients)
       }
 
@@ -493,7 +493,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
         authorization_keys =
           authorization_keys
           |> Enum.map(fn {_key, value} ->
-            value
+            String.upcase(value)
           end)
           |> Enum.reject(&(&1 == ""))
 
@@ -596,6 +596,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
   def validate_base_16_address(changeset, field) do
     with value <- fetch_field!(changeset, field),
          false <- is_nil(value),
+         changeset <- update_change(changeset, field, &String.upcase/1),
          true <- is_invalid_address(value) do
       add_error(changeset, field, "is not a valid address")
     else
@@ -672,6 +673,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
   end
 
   defp is_invalid_address(authorization_key_address) do
+    authorization_key_address = String.upcase(authorization_key_address)
     case Base.decode16(authorization_key_address) do
       :error -> true
       {:ok, decoded} -> not Crypto.valid_address?(decoded)
@@ -679,6 +681,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
   end
 
   defp is_invalid_public_key(public_key) do
+    public_key = String.upcase(public_key)
     case Base.decode16(public_key) do
       :error -> true
       {:ok, decoded} -> not Crypto.valid_public_key?(decoded)
