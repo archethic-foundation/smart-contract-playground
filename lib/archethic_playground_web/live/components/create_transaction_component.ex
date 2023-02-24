@@ -674,6 +674,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
 
   defp is_invalid_address(authorization_key_address) do
     authorization_key_address = String.upcase(authorization_key_address)
+
     case Base.decode16(authorization_key_address) do
       :error -> true
       {:ok, decoded} -> not Crypto.valid_address?(decoded)
@@ -682,6 +683,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
 
   defp is_invalid_public_key(public_key) do
     public_key = String.upcase(public_key)
+
     case Base.decode16(public_key) do
       :error -> true
       {:ok, decoded} -> not Crypto.valid_public_key?(decoded)

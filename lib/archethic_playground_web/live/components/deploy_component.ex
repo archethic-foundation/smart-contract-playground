@@ -98,7 +98,6 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
         %{"form" => %{"seed" => seed}},
         socket
       ) do
-
     endpoint = socket.assigns.endpoint
     %{host: host, port: port, scheme: scheme} = URI.parse(endpoint)
     proto = String.to_existing_atom(scheme)
@@ -145,19 +144,15 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
   end
 
   def handle_event("update_deploy", params, socket) do
-    %{"form" => %{"seed" => seed}} =
-      params
+    %{"form" => %{"seed" => seed}} = params
 
-    {:noreply,
-     assign(socket, %{seed: seed})}
+    {:noreply, assign(socket, %{seed: seed})}
   end
 
   def handle_event("update_selected_network", params, socket) do
-    %{"form" => %{"endpoint" => endpoint, "selected_network" => selected_network}} =
-      params
+    %{"form" => %{"endpoint" => endpoint, "selected_network" => selected_network}} = params
 
-    {:noreply,
-     assign(socket, %{endpoint: endpoint, selected_network: selected_network})}
+    {:noreply, assign(socket, %{endpoint: endpoint, selected_network: selected_network})}
   end
 
   defp validate_ownerships([], _, _, _, _, _), do: true
