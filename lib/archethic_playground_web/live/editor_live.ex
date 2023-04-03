@@ -26,9 +26,9 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
     {:ok, socket}
   end
 
-  def handle_event("interpret", %{"contract" => contract}, socket) do
+  def handle_event("interpret", %{"code" => code}, socket) do
     {socket, result} =
-      case ArchethicPlayground.interpret(contract) do
+      case ArchethicPlayground.interpret(code) do
         {:ok, interpreted_contract} ->
           triggers =
             interpreted_contract.triggers
@@ -40,7 +40,7 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
             assign(socket,
               triggers: triggers,
               interpreted_contract: interpreted_contract,
-              smart_contract_code: contract
+              smart_contract_code: code
             ),
             %{status: :ok, message: "Contract is successfully validated"}
           }

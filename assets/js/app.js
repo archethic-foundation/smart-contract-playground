@@ -71,15 +71,15 @@ let Hooks = {};
 // Load the editor
 Hooks.hook_LoadEditor = {
   mounted() {
-    loadEditor().then(({editor, monaco}) => {
+    loadEditor().then(({ editor, monaco }) => {
       window.editor = editor;
       window.monaco = monaco;
       window.editor.onKeyUp(() => {
-        if(this.keyUpHandler) clearTimeout(this.keyUpHandler);
+        if (this.keyUpHandler) clearTimeout(this.keyUpHandler);
         this.keyUpHandler = setTimeout(() => {
-          this.pushEvent("interpret", { contract: window.editor.getValue() }, (reply, ref) => {
+          this.pushEvent("interpret", { code: window.editor.getValue() }, (reply, ref) => {
             const model = window.editor.getModel();
-            if(reply.result.status == "error") {
+            if (reply.result.status == "error") {
               const lineNumber = extractLineNumber(reply.result.message);
               const markers = [{
                 message: reply.result.message,
@@ -104,15 +104,15 @@ Hooks.hook_LoadEditor = {
 Hooks.hook_ValidateContract = {
   mounted() {
     this.el.addEventListener('click', (event) => {
-      this.pushEvent("interpret", { contract: window.editor.getValue() });
+      this.pushEvent("interpret", { code: window.editor.getValue() });
     });
   }
 };
 
 function setEndpoint(that) {
-  const networkUrl = that.el.value == "custom_network" ? 
-        window.localStorage.getItem(CUSTOM_NETWORK_KEY) : 
-        that.el.value; 
+  const networkUrl = that.el.value == "custom_network" ?
+    window.localStorage.getItem(CUSTOM_NETWORK_KEY) :
+    that.el.value;
   that.pushEventTo(that.el, "update_endpoint", networkUrl)
 }
 

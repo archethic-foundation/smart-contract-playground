@@ -65,7 +65,7 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
       |> assign(:display_transaction_form, false)
       |> assign(:display_oracle_form, false)
       |> assign(:selected_trigger, "")
-      |> assign(:transaction, %{})
+      |> assign(:transaction, nil)
       |> assign(:aes_key, :crypto.strong_rand_bytes(32))
 
     {:ok, socket}
@@ -85,10 +85,9 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
     {:noreply, socket}
   end
 
-  def handle_event("execute_action", %{"form" => %{"trigger" => trigger_form}} = params, socket) do
-    trigger_transaction =
-      trigger_form
-      |> case do
+  def handle_event("execute_action", %{"form" => %{"trigger" => trigger_form}}, socket) do
+    trigger =
+      case trigger_form do
         "oracle" ->
           :oracle
 
@@ -107,22 +106,16 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
               {:datetime, DateTime.from_unix!(value)}
           end
       end
-      |> execute_contract(%{contract: socket.assigns.interpreted_contract}, params, socket)
 
-    send(self(), {:trigger_transaction, trigger_transaction})
+    execute_contract(trigger, socket.assigns.interpreted_contract, nil)
+
     {:noreply, socket}
   end
 
-  def handle_event("execute_transaction", _, socket) do
-    trigger_transaction =
-      execute_contract(
-        :transaction,
-        %{contract: socket.assigns.interpreted_contract},
-        nil,
-        socket
-      )
-
-    send(self(), {:trigger_transaction, trigger_transaction})
+  def handle_event("execute_transaction", _transaction_form, socket) do
+    # FIXME: transaction_form is always %{}
+    # FIXME: here we should convert the transaction_form into a %Transaction{} and feed it as 3rd argument
+    execute_contract(:transaction, socket.assigns.interpreted_contract, nil)
     {:noreply, socket}
   end
 
@@ -135,100 +128,14 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
     {:ok, assign(socket, assigns)}
   end
 
-  def execute_contract(
-        {trigger_type, _} = type,
-        %{
-          contract: %Contract{
-            version: version,
-            triggers: triggers,
-            constants: %Constants{
-              contract: contract_constants
-            }
-          }
-        },
-        _params,
-        _socket
-      )
-      when trigger_type == :datetime or trigger_type == :interval do
-    constants = %{
-      "contract" => contract_constants
-    }
+  defp execute_contract(trigger, contract, maybe_tx) do
+    # IMPROVE: trigger_transaction, is a map that is `inspect` into the console
+    case Interpreter.execute(trigger, contract, maybe_tx) do
+      {:ok, tx_or_nil} ->
+        send(self(), {:trigger_transaction, %{"success" => tx_or_nil}})
 
-    call_execute(version, Map.fetch!(triggers, type), constants)
-  end
-
-  def execute_contract(
-        :oracle,
-        %{
-          contract: %Contract{
-            version: version,
-            triggers: triggers,
-            constants: %Constants{
-              contract: contract_constants
-            }
-          }
-        },
-        %{"form" => %{"oracle_content" => oracle_content}},
-        _socket
-      ) do
-    case Jason.decode(oracle_content) do
-      {:ok, _} ->
-        transaction =
-          Constants.from_transaction(%Transaction{
-            address: "",
-            type: :oracle,
-            data: %TransactionData{
-              content: oracle_content
-            }
-          })
-
-        constants = %{
-          "contract" => contract_constants,
-          "transaction" => transaction
-        }
-
-        call_execute(version, Map.fetch!(triggers, :oracle), constants)
-
-      {:error, _} ->
-        "Error: the oracle content should be a JSON object"
-    end
-  end
-
-  def execute_contract(
-        :transaction,
-        %{
-          contract: %Contract{
-            version: version,
-            triggers: triggers,
-            constants: %Constants{
-              # contract: contract_constants
-            }
-          }
-        },
-        _params,
-        socket
-      ) do
-    # needed to provide at least one contract address
-    recipient_address =
-      <<50, 101, 204, 215, 140, 215, 73, 132, 250, 179, 204, 105, 132, 211, 12, 140, 130, 4, 78,
-        187, 171, 26, 79, 255, 182, 131, 189, 178, 216, 197, 188, 249>>
-
-    constants = %{
-      # "contract" => contract_constants,
-      "contract" => %{
-        "address" => recipient_address
-      },
-      "transaction" => socket.assigns.transaction
-    }
-
-    call_execute(version, Map.fetch!(triggers, :transaction), constants)
-  end
-
-  defp call_execute(version, type, constants) do
-    try do
-      Interpreter.execute_trigger(version, type, constants)
-    rescue
-      e -> e
+      {:error, reason} ->
+        send(self(), {:trigger_transaction, %{"error" => reason}})
     end
   end
 end
