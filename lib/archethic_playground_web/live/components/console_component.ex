@@ -12,7 +12,9 @@ defmodule ArchethicPlaygroundWeb.ConsoleComponent do
         <div class="absolute inset-0 px-2 sm:px-2">
           <div class="h-full border-2 border border-gray-500 bg-black text-gray-200 p-4 overflow-y-auto">
             <div class="block">
-              <%= if @trigger_transaction == %{}, do: "", else: inspect @trigger_transaction %>
+              <%= for {datetime, msg} <- @console_messages do %>
+                <p>[ <%= Calendar.strftime(datetime, "%H:%M:%S:%f") %> ]<br /> <%= inspect msg %></p>
+              <% end %>
             </div>
           </div>
         </div>

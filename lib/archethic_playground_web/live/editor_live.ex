@@ -18,7 +18,7 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
       |> assign(:terminal, [])
       |> assign(:triggers, [])
       |> assign(:interpreted_contract, %{})
-      |> assign(:trigger_transaction, %{})
+      |> assign(:console_messages, [])
       |> assign(:is_show_trigger, false)
       |> assign(:is_show_deploy, false)
       |> assign(:smart_contract_code, "")
@@ -68,8 +68,13 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
      )}
   end
 
-  def handle_info({:trigger_transaction, trigger_transaction}, socket) do
-    {:noreply, assign(socket, trigger_transaction: trigger_transaction)}
+  def handle_info({:console, :clear}, socket) do
+    {:noreply, assign(socket, console_messages: [])}
+  end
+
+  def handle_info({:console, data}, socket) do
+    dated_data = {DateTime.utc_now(), data}
+    {:noreply, assign(socket, console_messages: socket.assigns.console_messages ++ [dated_data])}
   end
 
   defp get_key({:interval, interval}), do: "interval:#{interval}"

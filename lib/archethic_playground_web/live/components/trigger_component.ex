@@ -3,15 +3,9 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
 
   use ArchethicPlaygroundWeb, :live_component
 
-  alias Archethic.Contracts.Contract
   alias Archethic.Contracts.ContractConstants, as: Constants
   alias Archethic.Contracts.Interpreter
   alias ArchethicPlaygroundWeb.CreateTransactionComponent
-
-  alias Archethic.TransactionChain.{
-    Transaction,
-    TransactionData
-  }
 
   def render(assigns) do
     ~H"""
@@ -86,6 +80,7 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
   end
 
   def handle_event("execute_action", %{"form" => %{"trigger" => trigger_form}}, socket) do
+    # this is the opposite of EditorLive.get_key/1
     trigger =
       case trigger_form do
         "oracle" ->
@@ -107,15 +102,33 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
           end
       end
 
-    execute_contract(trigger, socket.assigns.interpreted_contract, nil)
+    execute_contract(
+      trigger,
+      socket.assigns.interpreted_contract,
+      nil
+    )
 
     {:noreply, socket}
   end
 
-  def handle_event("execute_transaction", _transaction_form, socket) do
-    # FIXME: transaction_form is always %{}
-    # FIXME: here we should convert the transaction_form into a %Transaction{} and feed it as 3rd argument
-    execute_contract(:transaction, socket.assigns.interpreted_contract, nil)
+  def handle_event("execute_transaction", _, socket) do
+    case socket.assigns.transaction do
+      nil ->
+        send(self(), {:console, :clear})
+        send(self(), {:console, %{"error" => "Please fill-in the transaction form"}})
+
+      tx ->
+        execute_contract(
+          :transaction,
+          socket.assigns.interpreted_contract,
+          # type must be an atom for the constants.to_transaction
+          Constants.to_transaction(%{
+            tx
+            | "type" => String.to_existing_atom(socket.assigns.transaction["type"])
+          })
+        )
+    end
+
     {:noreply, socket}
   end
 
@@ -129,13 +142,15 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
   end
 
   defp execute_contract(trigger, contract, maybe_tx) do
-    # IMPROVE: trigger_transaction, is a map that is `inspect` into the console
+    send(self(), {:console, :clear})
+    send(self(), {:console, "Executing contract trigger: #{inspect(trigger)}"})
+
     case Interpreter.execute(trigger, contract, maybe_tx) do
       {:ok, tx_or_nil} ->
-        send(self(), {:trigger_transaction, %{"success" => tx_or_nil}})
+        send(self(), {:console, %{"success" => tx_or_nil}})
 
       {:error, reason} ->
-        send(self(), {:trigger_transaction, %{"error" => reason}})
+        send(self(), {:console, %{"error" => reason}})
     end
   end
 end

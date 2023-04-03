@@ -9,6 +9,6 @@
         <div class="h-full" id="archethic-editor" phx-hook="hook_LoadEditor" data-debounce-validation="1000"></div>
     </div>
     <!-- end monaco.editor -->
-    <.live_component module={ConsoleComponent} id="console" trigger_transaction={@trigger_transaction} />
+    <.live_component module={ConsoleComponent} id="console" console_messages={@console_messages} />
     </div>
 </div>
