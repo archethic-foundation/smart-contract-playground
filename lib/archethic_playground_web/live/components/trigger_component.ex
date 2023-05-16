@@ -124,7 +124,7 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
           # type must be an atom for the constants.to_transaction
           Constants.to_transaction(%{
             tx
-            | "type" => String.to_existing_atom(socket.assigns.transaction["type"])
+            | "type" => socket.assigns.transaction["type"]
           })
         )
     end
