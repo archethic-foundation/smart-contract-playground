@@ -38,6 +38,25 @@ if File.exists?(arch_config) do
   import_config arch_config
 end
 
+# override archethic conf for git_hooks
+config :git_hooks,
+  auto_install: true,
+  verbose: true,
+  hooks: [
+    pre_push: [
+      tasks: [
+        {:cmd, "mix clean"},
+        {:cmd, "mix format --check-formatted"},
+        {:cmd, "mix compile --warnings-as-errors"},
+        {:cmd, "mix credo"},
+        {:cmd, "mix sobelow"},
+        {:cmd, "mix knigge.verify"},
+        {:cmd, "mix test --trace"},
+        {:cmd, "mix dialyzer"}
+      ]
+    ]
+  ]
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"
