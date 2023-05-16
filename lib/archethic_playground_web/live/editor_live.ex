@@ -27,6 +27,8 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
   end
 
   def handle_event("interpret", %{"code" => code}, socket) do
+    send(self(), {:console, :clear})
+
     {socket, result} =
       case ArchethicPlayground.interpret(code) do
         {:ok, interpreted_contract} ->
@@ -46,6 +48,7 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
           }
 
         {:error, message} ->
+          send(self(), {:console, message})
           {socket, %{status: :error, message: message}}
       end
 

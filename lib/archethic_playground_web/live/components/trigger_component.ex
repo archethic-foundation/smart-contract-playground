@@ -145,7 +145,8 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
     send(self(), {:console, :clear})
     send(self(), {:console, "Executing contract trigger: #{inspect(trigger)}"})
 
-    case Interpreter.execute(trigger, contract, maybe_tx) do
+    # TO DO: replace `calls` value with data passed by the user
+    case Interpreter.execute(trigger, contract, maybe_tx, []) do
       {:ok, tx_or_nil} ->
         send(self(), {:console, %{"success" => tx_or_nil}})
 

@@ -81,15 +81,17 @@ Hooks.hook_LoadEditor = {
             const model = window.editor.getModel();
             if (reply.result.status == "error") {
               const lineNumber = extractLineNumber(reply.result.message);
-              const markers = [{
-                message: reply.result.message,
-                severity: monaco.MarkerSeverity.Error,
-                startLineNumber: lineNumber,
-                startColumn: 1,
-                endLineNumber: lineNumber,
-                endColumn: model.getLineLength(lineNumber) + 1
-              }];
-              window.monaco.editor.setModelMarkers(model, 'owner', markers);
+              if (lineNumber) {
+                const markers = [{
+                  message: reply.result.message,
+                  severity: monaco.MarkerSeverity.Error,
+                  startLineNumber: lineNumber,
+                  startColumn: 1,
+                  endLineNumber: lineNumber,
+                  endColumn: model.getLineLength(lineNumber) + 1
+                }];
+                window.monaco.editor.setModelMarkers(model, 'owner', markers);
+              }
             } else {
               window.monaco.editor.setModelMarkers(model, 'owner', []);
             }
@@ -190,5 +192,5 @@ function data() {
 function extractLineNumber(message) {
   const reg = new RegExp(/L(\d+)(:C(\d+))?$/g);
   const found = reg.exec(message);
-  return parseInt(found[1]);
+  return !found ? 0 : parseInt(found[1]);
 }
