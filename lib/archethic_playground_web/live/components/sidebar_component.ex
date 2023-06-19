@@ -14,7 +14,7 @@ defmodule ArchethicPlaygroundWeb.SidebarComponent do
       <li class="relative px-6">
         <a
                 class="inline-flex items-center w-full text-sm font-semibold text-gray-800 transition-colors duration-150 hover:text-gray-800 dark:hover:text-gray-200 dark:text-gray-100"
-                href="index.html"
+                href="#"
               >
     <img phx-track-static src={ArchethicPlaygroundWeb.Router.Helpers.static_path(@socket, "/assets/images/ArchethicLogoalone-Gradient.svg")} class="w-6 h-6" />
         </a>
