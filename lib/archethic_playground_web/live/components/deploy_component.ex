@@ -33,7 +33,7 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
                         </.form>
                         <.live_component module={CreateTransactionComponent} id="create-transaction-deploy" module_to_update={__MODULE__} id_to_update="deploy_component" smart_contract_code={@smart_contract_code} endpoint={@endpoint} aes_key={@aes_key}/>
                         <hr />
-                        <.form :let={f} for={%{}} as={:form} phx-submit="deploy_transaction" phx-target={@myself} phx-change="update_deploy" class="w-full max-w-lg">
+                        <.form :let={f} for={%{}} as={:form} phx-target={@myself} phx-change="update_deploy" class="w-full max-w-lg">
                           <div class="flex flex-wrap -mx-3 mb-6">
                             <div class="w-full px-3">
                               <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="seed">
@@ -41,20 +41,31 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
                               </label>
                               <%= password_input f, :seed, value: @seed, id: "seed", required: true, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500"  %>
                             </div>
-                            <%= if @transaction == %{}, do: "You first need to generate a transaction" %>
-                            <%= submit "Deploy",
-                              class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline",
-                              disabled: @transaction == %{}
-                              %>
-                            <%= if not is_nil(@new_transaction_url) do %>
-                              Your transaction has been sent to the network. <br />
-                              You can verify it <%= link "here", to: @new_transaction_url, target: "_blank" %>
-                            <% end %>
-                            <%= if not is_nil(@error_message) do %>
-                              The transaction has failed: <br />
-                              <%= inspect(@error_message) %>
-                            <% end %>
                           </div>
+                          <%= if @transaction == %{}, do: "You first need to generate a transaction" %>
+                            <%= if @transaction_fee_uco do %>
+                            Transaction fee:
+                              <%= @transaction_fee_uco %> UCO<br />
+                              <%= @transaction_fee_eur %> €<br />
+                              <%= @transaction_fee_usd %> $<br />
+                          <% end %>
+                          <button
+                            href="#" phx-target={@myself}
+                            phx-click="deploy_transaction"
+                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline",
+                            disabled={@transaction == %{}}>Deploy</button>
+                          <button
+                            href="#" phx-target={@myself}
+                            phx-click="get_transaction_fee"
+                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">Get transaction fee</button>
+                          <%= if not is_nil(@new_transaction_url) do %>
+                            Your transaction has been sent to the network. <br />
+                            You can verify it <%= link "here", to: @new_transaction_url, target: "_blank" %>
+                          <% end %>
+                          <%= if not is_nil(@error_message) do %>
+                            The transaction has failed: <br />
+                            <%= inspect(@error_message) %>
+                          <% end %>
                         </.form>
                     </div>
                 </div>
@@ -92,6 +103,9 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
         :networks_list,
         networks_list
       )
+      |> assign(:transaction_fee_uco, nil)
+      |> assign(:transaction_fee_eur, nil)
+      |> assign(:transaction_fee_usd, nil)
 
     {:ok, socket}
   end
@@ -106,8 +120,8 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
   end
 
   def handle_event(
-        "deploy_transaction",
-        %{"form" => %{"seed" => seed}},
+        "get_transaction_fee",
+        _,
         socket
       ) do
     endpoint = socket.assigns.endpoint
@@ -118,7 +132,62 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
       with true <-
              validate_ownerships(
                socket.assigns.transaction.data.ownerships,
-               seed,
+               socket.assigns.seed,
+               host,
+               port,
+               proto,
+               socket.assigns.aes_key
+             ),
+           {:ok, %{"fee" => fee, "rates" => %{"eur" => eur_rate, "usd" => usd_rate}}} <-
+             get_transaction_fee(
+               socket.assigns.transaction,
+               socket.assigns.seed,
+               host,
+               port,
+               :ed25519,
+               proto
+             ) do
+        transaction_fee_uco = fee / :math.pow(10, 8)
+        transaction_fee_eur = transaction_fee_uco * eur_rate
+        transaction_fee_usd = transaction_fee_uco * usd_rate
+
+        assign(socket, %{
+          transaction_fee_uco: transaction_fee_uco,
+          transaction_fee_eur: transaction_fee_eur,
+          transaction_fee_usd: transaction_fee_usd,
+          error_message: nil
+        })
+      else
+        false ->
+          assign(socket, %{
+            error_message:
+              "You need to create an ownership with the transaction seed as secret and authorize node public key to let nodes generate new transaction from your smart contract"
+          })
+
+        {:error, reason} ->
+          assign(socket, %{error_message: reason})
+
+        error ->
+          assign(socket, %{error_message: "an error occured, #{inspect(error)}}"})
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event(
+        "deploy_transaction",
+        _,
+        socket
+      ) do
+    endpoint = socket.assigns.endpoint
+    %{host: host, port: port, scheme: scheme} = URI.parse(endpoint)
+    proto = String.to_existing_atom(scheme)
+
+    socket =
+      with true <-
+             validate_ownerships(
+               socket.assigns.transaction.data.ownerships,
+               socket.assigns.seed,
                host,
                port,
                proto,
@@ -127,7 +196,7 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
            {:ok, new_transaction_address} <-
              deploy(
                socket.assigns.transaction,
-               seed,
+               socket.assigns.seed,
                host,
                port,
                :ed25519,
@@ -203,6 +272,25 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
          proto
        ) do
     Playbook.send_transaction_with_await_replication(
+      seed,
+      transaction.type,
+      transaction.data,
+      host,
+      port,
+      curve,
+      proto
+    )
+  end
+
+  defp get_transaction_fee(
+         transaction,
+         seed,
+         host,
+         port,
+         curve,
+         proto
+       ) do
+    Playbook.get_transaction_fee(
       seed,
       transaction.type,
       transaction.data,
