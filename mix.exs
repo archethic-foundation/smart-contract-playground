@@ -47,12 +47,12 @@ defmodule ArchethicPlayground.MixProject do
       {:dialyxir, "~> 1.0", runtime: false},
 
       # Quality
-      {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.6", runtime: false},
 
       # Utils
       {:knigge, "~> 1.4"},
       # Security
-      {:sobelow, ">= 0.11.1", only: [:test, :dev], runtime: false},
+m      {:sobelow, "~> 0.11", runtime: false},
 
       # UI
       {:tailwind, "~> 0.1", runtime: Mix.env() == :dev},

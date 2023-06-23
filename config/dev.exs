@@ -23,3 +23,5 @@ config :archethic_playground, ArchethicPlaygroundWeb.Endpoint,
     esbuild: {Esbuild, :install_and_run, [:playground, ~w(--sourcemap=inline --watch)]},
     tailwind: {Tailwind, :install_and_run, [:default, ~w(--watch)]}
   ]
+
+config :archethic_playground, ArchethicPlaygroundWeb.DeployComponent, mainnet_allowed: true

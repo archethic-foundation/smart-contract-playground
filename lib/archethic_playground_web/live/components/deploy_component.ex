@@ -65,6 +65,20 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
   end
 
   def mount(socket) do
+    mainnet_allowed? =
+      :archethic_playground
+      |> Application.get_env(__MODULE__, [])
+      |> Keyword.get(:mainnet_allowed)
+
+    networks_list = [
+      Local: "http://localhost:4000",
+      Testnet: "https://testnet.archethic.net",
+      Mainnet: "https://mainnet.archethic.net",
+      "Custom network": "custom_network"
+    ]
+
+    networks_list = if mainnet_allowed?, do: networks_list, else: List.delete_at(networks_list, 2)
+
     socket =
       socket
       |> assign(:aes_key, :crypto.strong_rand_bytes(32))
@@ -74,11 +88,9 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
       |> assign(:endpoint, "")
       |> assign(:selected_network, "")
       |> assign(:seed, "")
-      |> assign(:networks_list,
-        Local: "http://localhost:4000",
-        Testnet: "https://testnet.archethic.net",
-        Mainnet: "https://mainnet.archethic.net",
-        "Custom network": "custom_network"
+      |> assign(
+        :networks_list,
+        networks_list
       )
 
     {:ok, socket}

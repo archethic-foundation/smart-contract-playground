@@ -20,6 +20,9 @@ config :esbuild,
     env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
   ]
 
+config :archethic_playground, ArchethicPlaygroundWeb.DeployComponent,
+  mainnet_allowed: System.get_env("MAINNET_ALLOWED", "false") == "true"
+
 config :tailwind,
   version: "3.2.1",
   default: [
