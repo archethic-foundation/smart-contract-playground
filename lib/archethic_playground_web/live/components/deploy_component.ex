@@ -6,6 +6,15 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
   alias Archethic.Crypto
   alias Archethic.Utils.Regression.Playbook
   alias ArchethicPlaygroundWeb.CreateTransactionComponent
+  alias Archethic.TransactionChain.TransactionData.TokenLedger
+  alias Archethic.TransactionChain.TransactionData.UCOLedger
+
+  alias Archethic.TransactionChain.{
+    Transaction,
+    TransactionData,
+    TransactionData.Ledger,
+    TransactionData.UCOLedger
+  }
 
   def render(assigns) do
     ~H"""
@@ -44,20 +53,21 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
                           </div>
                           <%= if @transaction == %{}, do: "You first need to generate a transaction" %>
                             <%= if @transaction_fee_uco do %>
-                            Transaction fee:
+                            Transaction fee:<br />
                               <%= @transaction_fee_uco %> UCO<br />
-                              <%= @transaction_fee_eur %> €<br />
-                              <%= @transaction_fee_usd %> $<br />
+                              ~<%= @transaction_fee_eur %> €<br />
+                              ~<%= @transaction_fee_usd %> $<br />
                           <% end %>
                           <button
                             href="#" phx-target={@myself}
                             phx-click="deploy_transaction"
                             class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline",
-                            disabled={@transaction == %{}}>Deploy</button>
+                            >Deploy</button>
                           <button
                             href="#" phx-target={@myself}
                             phx-click="get_transaction_fee"
-                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">Get transaction fee</button>
+                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                            >Get transaction fee</button>
                           <%= if not is_nil(@new_transaction_url) do %>
                             Your transaction has been sent to the network. <br />
                             You can verify it <%= link "here", to: @new_transaction_url, target: "_blank" %>
@@ -93,7 +103,24 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
     socket =
       socket
       |> assign(:aes_key, :crypto.strong_rand_bytes(32))
-      |> assign(:transaction, %{})
+      |> assign(:transaction, %Transaction{
+        address: "",
+        type: :contract,
+        data: %TransactionData{
+          ownerships: [],
+          content: "",
+          code: "",
+          ledger: %Ledger{
+            token: %TokenLedger{
+              transfers: []
+            },
+            uco: %UCOLedger{
+              transfers: []
+            }
+          },
+          recipients: []
+        }
+      })
       |> assign(:new_transaction_url, nil)
       |> assign(:error_message, nil)
       |> assign(:endpoint, "")
@@ -147,9 +174,9 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
                :ed25519,
                proto
              ) do
-        transaction_fee_uco = fee / :math.pow(10, 8)
-        transaction_fee_eur = transaction_fee_uco * eur_rate
-        transaction_fee_usd = transaction_fee_uco * usd_rate
+        transaction_fee_uco = (fee / :math.pow(10, 8)) |> Float.round(4)
+        transaction_fee_eur = (transaction_fee_uco * eur_rate) |> Float.round(4)
+        transaction_fee_usd = (transaction_fee_uco * usd_rate) |> Float.round(4)
 
         assign(socket, %{
           transaction_fee_uco: transaction_fee_uco,

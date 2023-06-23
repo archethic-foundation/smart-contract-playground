@@ -296,7 +296,9 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       socket.assigns.uco_transfers
       |> Enum.filter(&(&1.id != uco_transfer_id))
 
-    {:noreply, assign(socket, :uco_transfers, uco_transfers)}
+    socket = assign(socket, :uco_transfers, uco_transfers)
+    create_transaction(socket)
+    {:noreply, socket}
   end
 
   def handle_event(
@@ -345,7 +347,9 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       socket.assigns.token_transfers
       |> Enum.filter(&(&1.id != token_transfer_id))
 
-    {:noreply, assign(socket, :token_transfers, token_transfers)}
+    socket = assign(socket, :token_transfers, token_transfers)
+    create_transaction(socket)
+    {:noreply, socket}
   end
 
   def handle_event(
@@ -403,7 +407,9 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       socket.assigns.recipients
       |> Enum.filter(&(&1.id != recipient_id))
 
-    {:noreply, assign(socket, :recipients, recipients)}
+    socket = assign(socket, :recipients, recipients)
+    create_transaction(socket)
+    {:noreply, socket}
   end
 
   def handle_event(
@@ -450,7 +456,9 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       socket.assigns.ownerships
       |> Enum.filter(&(&1.id != ownership_id))
 
-    {:noreply, assign(socket, :ownerships, ownerships)}
+    socket = assign(socket, :ownerships, ownerships)
+    create_transaction(socket)
+    {:noreply, socket}
   end
 
   def handle_event("delete_authorization_key", %{"id" => authorization_id}, socket) do
@@ -458,7 +466,9 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       socket.assigns.authorization_keys
       |> Enum.filter(&(&1.id != authorization_id))
 
-    {:noreply, assign(socket, :authorization_keys, authorization_keys)}
+    socket = assign(socket, :authorization_keys, authorization_keys)
+    create_transaction(socket)
+    {:noreply, socket}
   end
 
   def handle_event("change_ownership", params, socket) do
