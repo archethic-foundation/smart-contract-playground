@@ -24,4 +24,5 @@ config :archethic_playground, ArchethicPlaygroundWeb.Endpoint,
     tailwind: {Tailwind, :install_and_run, [:default, ~w(--watch)]}
   ]
 
-config :archethic_playground, ArchethicPlaygroundWeb.DeployComponent, mainnet_allowed: true
+config :archethic_playground, ArchethicPlaygroundWeb.DeployComponent,
+  mainnet_allowed: System.get_env("MAINNET_ALLOWED", "true") == "true"

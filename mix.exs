@@ -52,7 +52,7 @@ defmodule ArchethicPlayground.MixProject do
       # Utils
       {:knigge, "~> 1.4"},
       # Security
-m      {:sobelow, "~> 0.11", runtime: false},
+      {:sobelow, "~> 0.11", runtime: false},
 
       # UI
       {:tailwind, "~> 0.1", runtime: Mix.env() == :dev},
