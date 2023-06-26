@@ -7,3 +7,6 @@
 .tippy-box[data-theme~="dark"] {
   @apply bg-slate-800 dark:bg-slate-500;
 }
+.bg-vs-dark {
+  background-color: #1e1e1e;
+}

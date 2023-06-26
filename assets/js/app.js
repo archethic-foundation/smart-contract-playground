@@ -1,6 +1,7 @@
 import { Socket } from "phoenix";
 import { LiveSocket } from "phoenix_live_view";
 import { loadEditor } from "./editor/editor";
+import { highlightBlock } from 'highlight.js';
 
 // add tooltips
 import tippy from "tippy.js";
@@ -10,7 +11,6 @@ import Alpine from "alpinejs";
 window.Alpine = Alpine;
 Alpine.start();
 
-
 // tooltip
 tippy("[data-tippy-content]", {
   arrow: true,
@@ -18,6 +18,15 @@ tippy("[data-tippy-content]", {
 const CUSTOM_NETWORK_KEY = "custom_network";
 let Hooks = {};
 
+Hooks.CodeViewer = {
+  mounted() {
+    highlightBlock(this.el);
+  },
+
+  updated() {
+    highlightBlock(this.el);
+  },
+};
 // function myCompletions(context) {
 //   let word = context.matchBefore(/\w*/)
 //   if (word.from == word.to && !context.explicit) {
