@@ -26,7 +26,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     import Ecto.Changeset
     defstruct [:address]
     @types %{address: :string}
-    def changeset(%__MODULE__{} = recipient, attrs) do
+    def changeset(recipient = %__MODULE__{}, attrs) do
       {recipient, @types}
       |> cast(attrs, Map.keys(@types))
       |> validate_required(:address)
@@ -40,7 +40,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     import Ecto.Changeset
     defstruct [:amount, :to]
     @types %{amount: :float, to: :string}
-    def changeset(%__MODULE__{} = uco_transfer, attrs) do
+    def changeset(uco_transfer = %__MODULE__{}, attrs) do
       {uco_transfer, @types}
       |> cast(attrs, Map.keys(@types))
       |> validate_required([:amount, :to])
@@ -54,7 +54,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     import Ecto.Changeset
     defstruct [:amount, :to, :token_address, :token_id]
     @types %{amount: :float, to: :string, token_address: :string, token_id: :integer}
-    def changeset(%__MODULE__{} = token_transfer, attrs) do
+    def changeset(token_transfer = %__MODULE__{}, attrs) do
       {token_transfer, @types}
       |> cast(attrs, Map.keys(@types))
       |> validate_required([:amount, :to, :token_address, :token_id])

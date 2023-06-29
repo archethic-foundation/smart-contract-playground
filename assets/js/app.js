@@ -27,55 +27,6 @@ Hooks.CodeViewer = {
     highlightBlock(this.el);
   },
 };
-// function myCompletions(context) {
-//   let word = context.matchBefore(/\w*/)
-//   if (word.from == word.to && !context.explicit) {
-//     return null
-//   }
-
-//   return {
-//     from: word.from,
-//     options: [
-//       {
-//         label: "actions by transactions", type: "text", apply: `actions triggered_by: transaction do
-//   # Enter your actions when you are receving a transaction
-// end`, detail: "snippet"
-//       },
-//       {
-//         label: "condition for transactions", type: "text", apply: `condition transaction: [
-// ]`, detail: "snippet"
-//       },
-//       { label: "transaction", type: "variable", info: "Incoming transaction" }
-//     ]
-//   }
-// }
-
-// Hooks.ArchethicEditor = {
-//   mounted() {
-
-//     let startState = EditorState.create({
-//       doc: "Hello",
-//       extensions: [
-//         basicSetup,
-//         keymap.of(indentWithTab),
-//         autocompletion({ override: [myCompletions] }),
-//         EditorView.updateListener.of(v => {
-//           if (v.docChanged) {
-//             code = v.state.doc.toString()
-//             this.pushEvent("interpret", { code: code })
-//           }
-//         })
-//       ]
-//     })
-
-//     let view = new EditorView({
-//       state: startState,
-//       parent: this.el
-//     })
-
-//     view.focus()
-//   }
-// }
 
 // Load the editor
 Hooks.hook_LoadEditor = {

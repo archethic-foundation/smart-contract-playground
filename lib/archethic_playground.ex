@@ -3,10 +3,6 @@ defmodule ArchethicPlayground do
   Main module to run the functionality needed
   """
   alias Archethic.Contracts
-  alias Archethic.Contracts.Contract
-  alias Archethic.Contracts.ContractConstants, as: Constants
-  alias Archethic.Contracts.Interpreter
-
   alias Archethic.TransactionChain.Transaction
   alias Archethic.TransactionChain.TransactionData
 

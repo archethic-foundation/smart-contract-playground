@@ -143,10 +143,10 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
     send(self(), {:console, :clear})
     send(self(), {:console, "Executing contract trigger: #{inspect(trigger)}"})
 
-    # TODO: the time to use should be set-able by the user
+    # TO DO: the time to use should be set-able by the user
     datetime = DateTime.utc_now()
 
-    # TODO: calls should be set-able by the user
+    # TO DO: calls should be set-able by the user
     calls = []
 
     with :ok <- check_valid_precondition(trigger, contract, maybe_tx, datetime),
