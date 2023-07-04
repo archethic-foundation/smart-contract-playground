@@ -4,10 +4,10 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
   use ArchethicPlaygroundWeb, :live_component
 
   alias Archethic.TransactionChain.TransactionData.Ownership
-  alias Archethic.Contracts.ContractConstants, as: Constants
   alias Archethic.TransactionChain.TransactionData.TokenLedger
   alias Archethic.TransactionChain.TransactionData.TokenLedger.Transfer, as: TokenLedgerTransfer
   alias Archethic.TransactionChain.TransactionData.UCOLedger.Transfer, as: UCOTransfer
+  alias Archethic.TransactionChain.Transaction.ValidationStamp
   alias Archethic.Crypto
   alias Archethic.Utils.Regression.Playbook
 
@@ -80,6 +80,15 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
           </label>
           <%= textarea f, :content, id: "#{@id_to_update}_transaction-content", value: @content, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
           </div>
+          <%= if @display_validation_timestamp_input do %>
+            <div class="w-full px-3">
+                MOCK VALUES
+                <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="mock-input">
+                  Validation Timestamp
+                </label>
+                <%= datetime_local_input f, :validation_timestamp, value: @validation_timestamp, step: "1", id: "validation_timestamp-input", class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500"  %>
+            </div>
+          <% end %>
         </.form>
         <hr />
         <.form :let={f} for={@changeset_uco_transfer} phx-submit="create_uco_transfer" phx-change="validate_uco_transfer" phx-target={@myself}>
@@ -224,8 +233,8 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
                     <tr>
                     <td class="text-center">*****</td>
                     <td class="text-center">
-                    <%= for authorization_key <- ownership.authorization_keys do %>
-                    <span title={authorization_key}><%= "#{String.slice(authorization_key, 0..5)}... " %></span>
+                    <%= for authorized_key <- ownership.authorized_keys do %>
+                    <span title={authorized_key}><%= "#{String.slice(authorized_key, 0..5)}... " %></span>
                     <% end %>
                     </td>
                     <td class="text-center"><button href="#" phx-target={@myself} phx-click="delete_ownership" phx-value-id={ownership.id} class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline">X</button></td>
@@ -244,18 +253,18 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
             <label class="block uppercase tracking-wide text-xs font-bold mb-2">
                 Authorization keys
             </label>
-            <%= for authorization_key <- @authorization_keys do %>
-              <%= text_input f, :authorization_key_address, id: "#{@id_to_update}_auth_key_#{authorization_key.id}", required: true, name: "form[authorization_keys][#{authorization_key.id}]", placeholder: "Address", value: authorization_key.address, class: "appearance-none w-10/12 bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
-              <button href="#" disabled={length(@authorization_keys) < 2} phx-target={@myself} phx-click="delete_authorization_key" phx-value-id={authorization_key.id} class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline">
+            <%= for authorized_key <- @authorized_keys do %>
+              <%= text_input f, :authorized_key_address, id: "#{@id_to_update}_auth_key_#{authorized_key.id}", required: true, name: "form[authorized_keys][#{authorized_key.id}]", placeholder: "Address", value: authorized_key.address, class: "appearance-none w-10/12 bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+              <button href="#" disabled={length(@authorized_keys) < 2} phx-target={@myself} phx-click="delete_authorized_key" phx-value-id={authorized_key.id} class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded focus:outline-none focus:shadow-outline">
                 X
               </button>
-              <%= if is_invalid_public_key(authorization_key.address) do %>
+              <%= if is_invalid_public_key(authorized_key.address) do %>
                 This address is invalid
               <% end %>
             <% end %>
             </div>
             <div>
-            <button href="#" phx-target={@myself} phx-click="add_authorization_key" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4">
+            <button href="#" phx-target={@myself} phx-click="add_authorized_key" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4">
                 Add Authorization Key
             </button>
             <button href="#" phx-target={@myself} phx-click="add_storage_nonce_public_key" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4">
@@ -280,12 +289,14 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
         recipients: [],
         ownerships: [],
         secret: "",
-        authorization_keys: [%{address: "", id: "0"}],
+        authorized_keys: [%{address: "", id: "0"}],
         content: "",
         transaction_type: "contract",
         changeset_recipient: Recipient.changeset(%Recipient{}, %{}),
         changeset_uco_transfer: UcoTransfer.changeset(%UcoTransfer{}, %{}),
-        changeset_token_transfer: TokenTransfer.changeset(%TokenTransfer{}, %{})
+        changeset_token_transfer: TokenTransfer.changeset(%TokenTransfer{}, %{}),
+        validation_timestamp: nil,
+        display_validation_timestamp_input: false
       })
 
     {:ok, socket}
@@ -461,30 +472,39 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     {:noreply, socket}
   end
 
-  def handle_event("delete_authorization_key", %{"id" => authorization_id}, socket) do
-    authorization_keys =
-      socket.assigns.authorization_keys
+  def handle_event("delete_authorized_key", %{"id" => authorization_id}, socket) do
+    authorized_keys =
+      socket.assigns.authorized_keys
       |> Enum.filter(&(&1.id != authorization_id))
 
-    socket = assign(socket, :authorization_keys, authorization_keys)
+    socket = assign(socket, :authorized_keys, authorized_keys)
     create_transaction(socket)
     {:noreply, socket}
   end
 
   def handle_event("change_ownership", params, socket) do
-    %{"form" => %{"secret" => secret, "authorization_keys" => authorization_keys}} = params
+    %{"form" => %{"secret" => secret, "authorized_keys" => authorized_keys}} = params
 
-    authorization_keys =
-      authorization_keys
+    authorized_keys =
+      authorized_keys
       |> Enum.map(fn {id, value} ->
         %{address: value, id: id}
       end)
 
-    {:noreply, assign(socket, %{authorization_keys: authorization_keys, secret: secret})}
+    {:noreply, assign(socket, %{authorized_keys: authorized_keys, secret: secret})}
   end
 
   def handle_event("change_transaction_info", params, socket) do
     %{"form" => %{"transaction_type" => transaction_type, "content" => content}} = params
+
+    socket =
+      if socket.assigns.display_validation_timestamp_input do
+        %{"form" => %{"validation_timestamp" => validation_timestamp}} = params
+        assign(socket, %{validation_timestamp: validation_timestamp})
+      else
+        socket
+      end
+
     socket = assign(socket, %{transaction_type: transaction_type, content: content})
     create_transaction(socket)
     {:noreply, socket}
@@ -492,16 +512,16 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
 
   def handle_event(
         "create_ownership",
-        %{"form" => %{"secret" => secret, "authorization_keys" => authorization_keys}},
+        %{"form" => %{"secret" => secret, "authorized_keys" => authorized_keys}},
         socket
       ) do
     # stop if at least one authorization key isn't correct
     socket =
-      if Enum.any?(authorization_keys, fn {_key, value} -> is_invalid_public_key(value) end) do
+      if Enum.any?(authorized_keys, fn {_key, value} -> is_invalid_public_key(value) end) do
         socket
       else
-        authorization_keys =
-          authorization_keys
+        authorized_keys =
+          authorized_keys
           |> Enum.map(fn {_key, value} ->
             String.upcase(value)
           end)
@@ -511,16 +531,16 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
 
         ownership = %{
           secret: secret,
-          authorization_keys: authorization_keys,
+          authorized_keys: authorized_keys,
           id: get_next_id(socket.assigns.ownerships)
         }
 
-        new_authorization_keys = [%{address: "", id: "0"}]
+        new_authorized_keys = [%{address: "", id: "0"}]
 
         socket =
           assign(socket, %{
             ownerships: [ownership | ownerships],
-            authorization_keys: new_authorization_keys,
+            authorized_keys: new_authorized_keys,
             secret: ""
           })
 
@@ -539,7 +559,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       Playbook.storage_nonce_public_key(host, port, proto)
       |> Base.encode16()
 
-    last_key = List.last(socket.assigns.authorization_keys)
+    last_key = List.last(socket.assigns.authorized_keys)
 
     {new_storage_nonce_public_key, is_drop_last?} =
       if last_key.address == "" do
@@ -547,28 +567,28 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       else
         {%{
            address: storage_nonce_public_key,
-           id: get_next_id(socket.assigns.authorization_keys)
+           id: get_next_id(socket.assigns.authorized_keys)
          }, false}
       end
 
     reversed_list =
-      socket.assigns.authorization_keys
+      socket.assigns.authorized_keys
       |> Enum.reverse()
       |> maybe_drop_last(is_drop_last?)
 
     reversed_list = [new_storage_nonce_public_key | reversed_list]
-    authorization_keys = Enum.reverse(reversed_list)
-    {:noreply, assign(socket, :authorization_keys, authorization_keys)}
+    authorized_keys = Enum.reverse(reversed_list)
+    {:noreply, assign(socket, :authorized_keys, authorized_keys)}
   end
 
-  def handle_event("add_authorization_key", _params, socket) do
-    authorization_key = %{
+  def handle_event("add_authorized_key", _params, socket) do
+    authorized_key = %{
       address: "",
-      id: get_next_id(socket.assigns.authorization_keys)
+      id: get_next_id(socket.assigns.authorized_keys)
     }
 
-    authorization_keys = socket.assigns.authorization_keys
-    {:noreply, assign(socket, :authorization_keys, authorization_keys ++ [authorization_key])}
+    authorized_keys = socket.assigns.authorized_keys
+    {:noreply, assign(socket, :authorized_keys, authorized_keys ++ [authorized_key])}
   end
 
   defp create_transaction(socket) do
@@ -596,9 +616,22 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       }
     }
 
+    transaction =
+      if socket.assigns.display_validation_timestamp_input and
+           socket.assigns.validation_timestamp != "" do
+        {:ok, validation_timestamp_date, _} =
+          "#{socket.assigns.validation_timestamp}Z"
+          |> DateTime.from_iso8601()
+
+        Map.put(transaction, :validation_stamp, %ValidationStamp{
+          timestamp: validation_timestamp_date
+        })
+      else
+        transaction
+      end
+
     send_update(self(), socket.assigns.module_to_update,
       id: socket.assigns.id_to_update,
-      transaction_map: Constants.from_transaction(transaction),
       transaction: transaction
     )
   end
@@ -620,9 +653,9 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
   defp build_ownerships(ownerships, aes_key) do
     secret_key = :crypto.strong_rand_bytes(32)
 
-    Enum.map(ownerships, fn %{authorization_keys: authorization_keys, secret: secret} ->
+    Enum.map(ownerships, fn %{authorized_keys: authorized_keys, secret: secret} ->
       keys =
-        Enum.reduce(authorization_keys, %{}, fn key, acc ->
+        Enum.reduce(authorized_keys, %{}, fn key, acc ->
           key = Base.decode16!(key, case: :mixed)
           Map.merge(acc, %{key => Crypto.ec_encrypt(secret_key, key)})
         end)
@@ -682,10 +715,10 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     Enum.reject(Archethic.TransactionChain.Transaction.types(), &Transaction.network_type?/1)
   end
 
-  defp is_invalid_address(authorization_key_address) do
-    authorization_key_address = String.upcase(authorization_key_address)
+  defp is_invalid_address(authorized_key_address) do
+    authorized_key_address = String.upcase(authorized_key_address)
 
-    case Base.decode16(authorization_key_address) do
+    case Base.decode16(authorized_key_address) do
       :error -> true
       {:ok, decoded} -> not Crypto.valid_address?(decoded)
     end

@@ -60,6 +60,14 @@ config :git_hooks,
     ]
   ]
 
+config :archethic,
+       Archethic.Contracts.Interpreter.Library.Common.Chain,
+       ArchethicPlayground.MockFunctions
+
+config :archethic,
+       Archethic.Contracts.Interpreter.Library.Common.Token,
+       ArchethicPlayground.MockFunctions
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{Mix.env()}.exs"
