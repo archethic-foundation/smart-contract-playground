@@ -3,6 +3,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
 
   use ArchethicPlaygroundWeb, :live_component
 
+  alias Archethic.Utils
   alias Archethic.TransactionChain.TransactionData.Ownership
   alias Archethic.TransactionChain.TransactionData.TokenLedger
   alias Archethic.TransactionChain.TransactionData.TokenLedger.Transfer, as: TokenLedgerTransfer
@@ -67,6 +68,9 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     ~H"""
       <div>
         <h2>Create a transaction</h2>
+        <button href="#" phx-target={@myself} phx-click="clear_transaction" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline m-4">
+            Clear transaction
+        </button>
         <.form :let={f} for={%{}} as={:form} phx-change="change_transaction_info" phx-target={@myself}>
           <div class="w-full px-3">
           <label class="block uppercase tracking-wide text-xs font-bold mb-2" for={"#{@id_to_update}_transaction-type"}>
@@ -79,6 +83,16 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
               Content
           </label>
           <%= textarea f, :content, id: "#{@id_to_update}_transaction-content", value: @content, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+          </div>
+          <div class="w-full px-3">
+            <label class="block uppercase tracking-wide text-xs font-bold mb-2" for={"#{@id_to_update}_transaction-code"}>
+                Code
+            </label>
+            <%= if @display_code_block do %>
+            <%= textarea f, :code, id: "#{@id_to_update}_transaction-code", value: @code, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
+            <% else %>
+            The code corresponding to this transaction is the code in the editor
+            <% end %>
           </div>
           <%= if @display_mock_values_input do %>
             <div class="w-full px-3">
@@ -285,29 +299,76 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
   end
 
   def mount(socket) do
-    default_validation_timestamp =
-      DateTime.utc_now()
-      |> DateTime.truncate(:second)
-      |> NaiveDateTime.to_iso8601()
+    {:ok, set_default_values(socket)}
+  end
+
+  def update(assigns, socket) do
+    socket = assign(socket, assigns)
 
     socket =
-      socket
-      |> assign(%{
-        uco_transfers: [],
-        token_transfers: [],
-        recipients: [],
-        ownerships: [],
-        secret: "",
-        authorized_keys: [%{address: "", id: "0"}],
-        content: "",
-        transaction_type: "contract",
-        changeset_recipient: Recipient.changeset(%Recipient{}, %{}),
-        changeset_uco_transfer: UcoTransfer.changeset(%UcoTransfer{}, %{}),
-        changeset_token_transfer: TokenTransfer.changeset(%TokenTransfer{}, %{}),
-        validation_timestamp: default_validation_timestamp,
-        contract_address: "",
-        display_mock_values_input: false
-      })
+      if Map.has_key?(assigns, :input_transaction) and assigns.input_transaction != nil do
+        uco_transfers =
+          assigns.input_transaction.data.ledger.uco.transfers
+          |> Enum.with_index()
+          |> Enum.map(fn {transfer, index} ->
+            %{
+              to: Base.encode16(transfer.to),
+              amount: Utils.from_bigint(transfer.amount) |> Float.to_string(),
+              id: Integer.to_string(index)
+            }
+          end)
+
+        token_transfers =
+          assigns.input_transaction.data.ledger.token.transfers
+          |> Enum.with_index()
+          |> Enum.map(fn {transfer, index} ->
+            %{
+              to: Base.encode16(transfer.to),
+              amount: Utils.from_bigint(transfer.amount) |> Float.to_string(),
+              token_id: Integer.to_string(transfer.token_id),
+              token_address: Base.encode16(transfer.token_address),
+              id: Integer.to_string(index)
+            }
+          end)
+
+        ownerships =
+          assigns.input_transaction.data.ownerships
+          |> Enum.with_index()
+          |> Enum.map(fn {ownership, index} ->
+            %{
+              id: Integer.to_string(index),
+              secret: ownership.secret,
+              authorized_keys:
+                ownership.authorized_keys
+                |> Enum.map(fn {authorized_key, _} ->
+                  Base.encode16(authorized_key)
+                end)
+            }
+          end)
+
+        transaction =
+          socket.assigns.input_transaction
+          |> set_validation_stamp(socket)
+
+        send_update(self(), socket.assigns.module_to_update,
+          id: socket.assigns.id_to_update,
+          component_id: socket.assigns.id,
+          transaction: transaction
+        )
+
+        assign(
+          socket,
+          uco_transfers: uco_transfers,
+          token_transfers: token_transfers,
+          recipients: assigns.input_transaction.data.recipients,
+          ownerships: ownerships,
+          content: assigns.input_transaction.data.content,
+          code: assigns.input_transaction.data.code,
+          transaction_type: to_string(assigns.input_transaction.type)
+        )
+      else
+        socket
+      end
 
     {:ok, socket}
   end
@@ -621,11 +682,28 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     {:noreply, assign(socket, :authorized_keys, authorized_keys ++ [authorized_key])}
   end
 
+  def handle_event("clear_transaction", _, socket) do
+    send_update(self(), socket.assigns.module_to_update,
+      id: socket.assigns.id_to_update,
+      component_id: socket.assigns.id,
+      transaction: nil
+    )
+
+    {:noreply, set_default_values(socket)}
+  end
+
   defp create_transaction(socket) do
     ownerships = build_ownerships(socket.assigns.ownerships, socket.assigns.aes_key)
     token_transfers = build_token_transfers(socket.assigns.token_transfers)
     uco_transfers = build_uco_transfers(socket.assigns.uco_transfers)
     recipients = build_recipients(socket.assigns.recipients)
+
+    code =
+      if Map.has_key?(socket.assigns, :smart_contract) do
+        socket.assigns.smart_contract_code
+      else
+        socket.assigns.code
+      end
 
     transaction = %Transaction{
       address: "",
@@ -633,7 +711,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       data: %TransactionData{
         ownerships: ownerships,
         content: socket.assigns.content,
-        code: socket.assigns.smart_contract_code,
+        code: code,
         ledger: %Ledger{
           token: %TokenLedger{
             transfers: token_transfers
@@ -653,6 +731,7 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
 
     send_update(self(), socket.assigns.module_to_update,
       id: socket.assigns.id_to_update,
+      component_id: socket.assigns.id,
       transaction: transaction
     )
   end
@@ -780,5 +859,32 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       :error -> true
       {:ok, decoded} -> not Crypto.valid_public_key?(decoded)
     end
+  end
+
+  defp set_default_values(socket) do
+    default_validation_timestamp =
+      DateTime.utc_now()
+      |> DateTime.truncate(:second)
+      |> NaiveDateTime.to_iso8601()
+
+    assign(socket, %{
+      uco_transfers: [],
+      token_transfers: [],
+      recipients: [],
+      ownerships: [],
+      secret: "",
+      authorized_keys: [%{address: "", id: "0"}],
+      content: "",
+      code: "",
+      transaction_type: "contract",
+      changeset_recipient: Recipient.changeset(%Recipient{}, %{}),
+      changeset_uco_transfer: UcoTransfer.changeset(%UcoTransfer{}, %{}),
+      changeset_token_transfer: TokenTransfer.changeset(%TokenTransfer{}, %{}),
+      validation_timestamp: default_validation_timestamp,
+      contract_address: "",
+      display_mock_values_input: false,
+      input_transaction: nil,
+      display_code_block: false
+    })
   end
 end

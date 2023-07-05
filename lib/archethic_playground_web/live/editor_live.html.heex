@@ -1,6 +1,6 @@
 <div class="flex" >
     <.live_component module={SidebarComponent} id="sidebar" />
-    <.live_component module={TriggerComponent} id="trigger_component" triggers={@triggers} is_show_trigger={@is_show_trigger} interpreted_contract={@interpreted_contract} smart_contract_code={@smart_contract_code} />
+    <.live_component module={TriggerComponent} id="trigger_component" triggers={@triggers} is_show_trigger={@is_show_trigger} smart_contract_code={@smart_contract_code} />
     <.live_component module={DeployComponent} id="deploy_component" interpreted_contract={@interpreted_contract} is_show_deploy={@is_show_deploy} smart_contract_code={@smart_contract_code} />
     <div class="flex h-screen flex-col flex-1">
     <.live_component module={HeaderComponent} id="header" />

@@ -7,6 +7,14 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
   alias Archethic.Contracts.Contract
   alias Archethic.TransactionChain.Transaction
   alias ArchethicPlaygroundWeb.CreateTransactionComponent
+  alias Archethic.TransactionChain.TransactionData.TokenLedger
+
+  alias Archethic.TransactionChain.{
+    Transaction,
+    TransactionData,
+    TransactionData.Ledger,
+    TransactionData.UCOLedger
+  }
 
   def render(assigns) do
     ~H"""
@@ -83,16 +91,30 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
                                 </div>
                               <% end %>
                               </div>
+                              <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in ml-5">
+                                <%= checkbox f, :synchronized_output_input, value: @synchronized_output_input, id: "synchronizeOutputInput", class: "toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" %>
+                                <label for="synchronizeOutputInput" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                              </div>
+                              <label for="synchronizeOutputInput">
+                                Automatically copy the transaction from the last output to the following input (will be considered as the previous transaction)
+                              </label>
                             </div>
                         </.form>
-                        <%= if @display_transaction_form do %>
-                          <.live_component module={CreateTransactionComponent} id="create-transaction-trigger" module_to_update={__MODULE__} id_to_update="trigger_component" smart_contract_code={@smart_contract_code} aes_key={@aes_key} display_mock_values_input={true} />
+                        <h2 class="font-bold">CURRENT TRANSACTION</h2>
+                        <.live_component module={CreateTransactionComponent} id="create-current-transaction" module_to_update={__MODULE__} id_to_update="trigger_component" aes_key={@aes_key} input_transaction={@current_transaction} display_mock_values_input={true} />
+
+                        <%= if @selected_trigger == "transaction" do %>
+                          <br />
+                          <hr />
+                          <br />
+                          <h2 class="font-bold">TRIGGER'S TRANSACTION</h2>
+                          <.live_component module={CreateTransactionComponent} id="create-transaction-trigger" module_to_update={__MODULE__} id_to_update="trigger_component" aes_key={@aes_key} input_transaction={@trigger_transaction} display_code_block={true} display_mock_values_input={true} />
                         <% end %>
                         <div class="mt-5">
-                            <button phx-click="execute_trigger" disabled={@selected_trigger == ""} phx-target={@myself} class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" href="#">
-                              Trigger
-                            </button>
-                          </div>
+                          <button phx-click="execute_trigger" disabled={@selected_trigger == ""} phx-target={@myself} class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" href="#">
+                            Trigger
+                          </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -104,10 +126,11 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
   def mount(socket) do
     socket =
       socket
-      |> assign(:display_transaction_form, false)
+      |> assign(:synchronized_output_input, false)
       |> assign(:display_oracle_form, false)
       |> assign(:selected_trigger, "")
-      |> assign(:transaction, nil)
+      |> assign(:trigger_transaction, create_empty_transaction())
+      |> assign(:current_transaction, create_empty_transaction())
       |> assign(:aes_key, :crypto.strong_rand_bytes(32))
       |> assign(:mock_functions, [
         "Chain.get_genesis_address",
@@ -129,14 +152,20 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
     new_mock_function = params["form"]["new_mock_function"]
     new_mock_input = params["form"]["new_mock_input"]
     new_mock_output = params["form"]["new_mock_output"]
-    display_transaction_form = trigger_form == "transaction"
     display_oracle_form = trigger_form == "oracle"
+    synchronized_output_input = params["form"]["synchronized_output_input"]
+
+    synchronized_output_input =
+      case synchronized_output_input do
+        "true" -> true
+        _ -> false
+      end
 
     socket =
       socket
-      |> assign(:display_transaction_form, display_transaction_form)
-      |> assign(:display_oracle_form, display_oracle_form)
+      |> assign(:synchronized_output_input, synchronized_output_input)
       |> assign(:selected_trigger, trigger_form)
+      |> assign(:display_oracle_form, display_oracle_form)
       |> assign(:new_mock_function, new_mock_function)
       |> assign(:new_mock_input, new_mock_input)
       |> assign(:new_mock_output, new_mock_output)
@@ -205,7 +234,7 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
           |> parse_key_with_param()
       end
 
-    handle_trigger(trigger, socket.assigns.transaction, socket)
+    handle_trigger(trigger, socket.assigns.trigger_transaction, socket)
   end
 
   defp parse_key_with_param(key_with_param) do
@@ -228,19 +257,34 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
     {:noreply, socket}
   end
 
-  defp handle_trigger(trigger, transaction, socket) do
-    execute_contract(
-      trigger,
-      socket.assigns.interpreted_contract,
-      transaction,
-      socket.assigns.configured_mock_functions
-    )
+  defp handle_trigger(trigger, trigger_transaction, socket) do
+    {:ok, contract} = build_contract(socket)
 
-    {:noreply, socket}
+    tmp_transaction =
+      execute_contract(
+        trigger,
+        contract,
+        trigger_transaction,
+        socket.assigns.configured_mock_functions
+      )
+
+    current_transaction =
+      if socket.assigns.synchronized_output_input do
+        tmp_transaction
+      else
+        socket.assigns.current_transaction
+      end
+
+    {:noreply, assign(socket, current_transaction: current_transaction)}
   end
 
-  def update(%{transaction: transaction}, socket) do
-    socket = assign(socket, transaction: transaction)
+  def update(%{transaction: transaction, component_id: "create-current-transaction"}, socket) do
+    socket = assign(socket, current_transaction: transaction)
+    {:ok, socket}
+  end
+
+  def update(%{transaction: transaction, component_id: "create-transaction-trigger"}, socket) do
+    socket = assign(socket, trigger_transaction: transaction)
     {:ok, socket}
   end
 
@@ -259,9 +303,11 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
            Contracts.execute_trigger(trigger, contract, maybe_tx, time_now: datetime),
          :ok <- check_valid_postcondition(contract, tx_or_nil, datetime) do
       send(self(), {:console, %{"success" => tx_or_nil}})
+      tx_or_nil
     else
       {:error, reason} ->
         send(self(), {:console, %{"error" => reason}})
+        nil
     end
   end
 
@@ -346,4 +392,32 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
   end
 
   defp truncate_string(s), do: s
+
+  defp build_contract(socket) do
+    transaction_data = socket.assigns.current_transaction.data
+    transaction_data = %{transaction_data | code: socket.assigns.smart_contract_code}
+    current_transaction = %{socket.assigns.current_transaction | data: transaction_data}
+    Contracts.from_transaction(current_transaction)
+  end
+
+  defp create_empty_transaction do
+    %Transaction{
+      address: "",
+      type: :contract,
+      data: %TransactionData{
+        ownerships: [],
+        content: "",
+        code: "",
+        ledger: %Ledger{
+          token: %TokenLedger{
+            transfers: []
+          },
+          uco: %UCOLedger{
+            transfers: []
+          }
+        },
+        recipients: []
+      }
+    }
+  end
 end

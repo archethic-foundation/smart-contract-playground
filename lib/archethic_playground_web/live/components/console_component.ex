@@ -54,7 +54,7 @@ defmodule ArchethicPlaygroundWeb.ConsoleComponent do
                   %{
                     "to" => Base.encode16(to),
                     "amount" => amount,
-                    "token" => token_address,
+                    "token" => Base.encode16(token_address),
                     "token_id" => token_id
                   }
                 end)
