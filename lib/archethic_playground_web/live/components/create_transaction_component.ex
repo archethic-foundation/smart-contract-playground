@@ -80,13 +80,17 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
           </label>
           <%= textarea f, :content, id: "#{@id_to_update}_transaction-content", value: @content, class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
           </div>
-          <%= if @display_validation_timestamp_input do %>
+          <%= if @display_mock_values_input do %>
             <div class="w-full px-3">
                 MOCK VALUES
-                <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="mock-input">
+                <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="validation_timestamp-input">
                   Validation Timestamp
                 </label>
                 <%= datetime_local_input f, :validation_timestamp, value: @validation_timestamp, step: "1", id: "validation_timestamp-input", class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500"  %>
+                <label class="block uppercase tracking-wide text-xs font-bold mb-2" for="contract_address-input">
+                  Contract's address
+                </label>
+                <%= text_input f, :contract_address, id: "contract_address-input", class: "appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" %>
             </div>
           <% end %>
         </.form>
@@ -281,6 +285,11 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
   end
 
   def mount(socket) do
+    default_validation_timestamp =
+      DateTime.utc_now()
+      |> DateTime.truncate(:second)
+      |> NaiveDateTime.to_iso8601()
+
     socket =
       socket
       |> assign(%{
@@ -295,8 +304,9 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
         changeset_recipient: Recipient.changeset(%Recipient{}, %{}),
         changeset_uco_transfer: UcoTransfer.changeset(%UcoTransfer{}, %{}),
         changeset_token_transfer: TokenTransfer.changeset(%TokenTransfer{}, %{}),
-        validation_timestamp: nil,
-        display_validation_timestamp_input: false
+        validation_timestamp: default_validation_timestamp,
+        contract_address: "",
+        display_mock_values_input: false
       })
 
     {:ok, socket}
@@ -498,9 +508,29 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     %{"form" => %{"transaction_type" => transaction_type, "content" => content}} = params
 
     socket =
-      if socket.assigns.display_validation_timestamp_input do
-        %{"form" => %{"validation_timestamp" => validation_timestamp}} = params
-        assign(socket, %{validation_timestamp: validation_timestamp})
+      if socket.assigns.display_mock_values_input do
+        %{
+          "form" => %{
+            "validation_timestamp" => validation_timestamp,
+            "contract_address" => contract_address
+          }
+        } = params
+
+        # needed because when using keyboard navigation when filling the datefield
+        # the data is sent before the seconds can be set
+        validation_timestamp =
+          case Regex.match?(~r/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/u, validation_timestamp) do
+            true ->
+              "#{validation_timestamp}:00"
+
+            false ->
+              validation_timestamp
+          end
+
+        assign(socket, %{
+          validation_timestamp: validation_timestamp,
+          contract_address: contract_address
+        })
       else
         socket
       end
@@ -617,18 +647,9 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
     }
 
     transaction =
-      if socket.assigns.display_validation_timestamp_input and
-           socket.assigns.validation_timestamp != "" do
-        {:ok, validation_timestamp_date, _} =
-          "#{socket.assigns.validation_timestamp}Z"
-          |> DateTime.from_iso8601()
-
-        Map.put(transaction, :validation_stamp, %ValidationStamp{
-          timestamp: validation_timestamp_date
-        })
-      else
-        transaction
-      end
+      transaction
+      |> set_validation_stamp(socket)
+      |> set_contract_address(socket)
 
     send_update(self(), socket.assigns.module_to_update,
       id: socket.assigns.id_to_update,
@@ -644,6 +665,34 @@ defmodule ArchethicPlaygroundWeb.CreateTransactionComponent do
       add_error(changeset, field, "is not a valid address")
     else
       _ -> changeset
+    end
+  end
+
+  defp set_validation_stamp(transaction, socket) do
+    if socket.assigns.display_mock_values_input do
+      validation_timestamp =
+        with true <- socket.assigns.validation_timestamp != "",
+             {:ok, validation_timestamp_date, _} <-
+               DateTime.from_iso8601("#{socket.assigns.validation_timestamp}Z") do
+          validation_timestamp_date
+        else
+          _ ->
+            DateTime.utc_now()
+        end
+
+      Map.put(transaction, :validation_stamp, %ValidationStamp{timestamp: validation_timestamp})
+    else
+      transaction
+    end
+  end
+
+  defp set_contract_address(transaction, socket) do
+    if socket.assigns.display_mock_values_input and
+         socket.assigns.contract_address != "" and
+         not is_invalid_address(socket.assigns.contract_address) do
+      Map.put(transaction, :address, Base.decode16!(socket.assigns.contract_address))
+    else
+      transaction
     end
   end
 

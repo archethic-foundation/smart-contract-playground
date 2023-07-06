@@ -86,7 +86,7 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
                             </div>
                         </.form>
                         <%= if @display_transaction_form do %>
-                          <.live_component module={CreateTransactionComponent} id="create-transaction-trigger" module_to_update={__MODULE__} id_to_update="trigger_component" smart_contract_code={@smart_contract_code} aes_key={@aes_key} display_validation_timestamp_input={true} />
+                          <.live_component module={CreateTransactionComponent} id="create-transaction-trigger" module_to_update={__MODULE__} id_to_update="trigger_component" smart_contract_code={@smart_contract_code} aes_key={@aes_key} display_mock_values_input={true} />
                         <% end %>
                         <div class="mt-5">
                             <button phx-click="execute_trigger" disabled={@selected_trigger == ""} phx-target={@myself} class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" href="#">
