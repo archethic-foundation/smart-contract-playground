@@ -175,8 +175,8 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
 
   def handle_event("add_mock_function", _, socket) do
     new_mock_function = socket.assigns.new_mock_function
-    new_mock_input = socket.assigns.new_mock_input
-    new_mock_output = socket.assigns.new_mock_output
+    new_mock_input = socket.assigns.new_mock_input |> format_mock_values()
+    new_mock_output = socket.assigns.new_mock_output |> format_mock_values()
 
     if new_mock_function != "" and new_mock_input != "" and new_mock_output != "" do
       add_mock_function(new_mock_function, new_mock_input, new_mock_output)
@@ -419,5 +419,21 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
         recipients: []
       }
     }
+  end
+
+  defp format_mock_values(input) when is_binary(input) do
+    input
+    |> String.trim()
+    |> String.upcase()
+    |> remove_0x_prefix()
+  end
+
+  defp format_mock_values(input), do: input
+
+  defp remove_0x_prefix(str) do
+    case String.starts_with?(str, "0X") do
+      true -> String.slice(str, 2, String.length(str))
+      false -> str
+    end
   end
 end
