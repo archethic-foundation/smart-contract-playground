@@ -14,7 +14,6 @@ defmodule ArchethicPlaygroundWeb.Router do
 
   scope "/", ArchethicPlaygroundWeb do
     pipe_through(:browser)
-    # live("/editor", EditorLive)
-    get("/", RootController, :index)
+    live("/", EditorLive)
   end
 end

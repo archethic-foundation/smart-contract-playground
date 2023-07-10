@@ -1,0 +1,19 @@
+<div class="flex flex-col">
+  <.h4 class="uppercase text-center">
+    Contract's transaction
+    <.dropdown>
+      <.dropdown_menu_item label="Clear form" phx-target={@myself} phx-click="clear-form" />
+      <.dropdown_menu_item label="Deploy [TODO]" />
+    </.dropdown>
+  </.h4>
+
+  <.live_component
+    id="form-contract"
+    module={TransactionFormComponent}
+    display_mocks={true}
+    display_code={false}
+    global_variable="contract"
+    parent={@myself}
+    transaction={@transaction}
+  />
+</div>

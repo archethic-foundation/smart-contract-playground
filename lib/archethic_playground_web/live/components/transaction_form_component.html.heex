@@ -1,0 +1,220 @@
+<div>
+  <.form :let={f} for={@form} phx-change="transaction_form:on-form-change" phx-target={@parent}>
+    <.field field={@form[:type]} type="select" options={list_transaction_types()} label="Type*" />
+
+    <.field field={@form[:content]} type="textarea" label="Content" />
+
+    <%= if @display_code do %>
+      <.field field={@form[:code]} type="textarea" label="Code" />
+    <% else %>
+      <.field field={@form[:code]} type="hidden" label="Code" />
+    <% end %>
+
+    <%= if @display_mocks do %>
+      <.field
+        field={@form[:validation_timestamp]}
+        type="datetime-local"
+        label="Validation UTC time"
+        help_text={"Used to mock #{@global_variable}.timestamp"}
+      />
+      <.field
+        field={@form[:address]}
+        label="Address"
+        help_text={"Used to mock #{@global_variable}.address"}
+      />
+    <% end %>
+
+    <.card class="mb-2">
+      <.card_content category="Recipients (contracts)" class="p-2">
+        <.button
+          label="Add a recipient"
+          link_type="a"
+          to="#"
+          phx-click="transaction_form:add-recipient"
+          phx-target={@parent}
+          icon={:plus}
+          variant="outline"
+          size="xs"
+          class="w-full"
+        />
+
+        <%= for recipient_form <- inputs_for f, :recipients do %>
+          <%= hidden_inputs_for(recipient_form) %>
+          <div class="flex gap-1 my-2 p-1 border border-gray-700 rounded">
+            <%= text_input(recipient_form, :address,
+              class: "w-11/12 pc-text-input",
+              placeholder: "Contract's address"
+            ) %>
+
+            <.icon
+              name={:trash}
+              class="w-1/12 cursor-pointer"
+              phx-click="transaction_form:remove-recipient"
+              phx-value-index={recipient_form.index}
+              phx-target={@parent}
+            />
+          </div>
+        <% end %>
+      </.card_content>
+    </.card>
+
+    <.card class="mb-2">
+      <.card_content category="UCO transfers" class="p-2">
+        <.button
+          label="Add a transfer"
+          link_type="a"
+          to="#"
+          phx-click="transaction_form:add-uco-transfer"
+          phx-target={@parent}
+          icon={:plus}
+          variant="outline"
+          size="xs"
+          class="w-full"
+        />
+
+        <%= for uco_form <- inputs_for f, :uco_transfers do %>
+          <%= hidden_inputs_for(uco_form) %>
+          <div class="flex gap-1 my-2 p-1 border border-gray-700 rounded">
+            <div class="w-11/12 flex flex-col gap-1">
+              <%= text_input(uco_form, :to,
+                class: "pc-text-input",
+                placeholder: "Recipient address"
+              ) %>
+              <%= number_input(
+                uco_form,
+                :amount,
+                [class: "pc-text-input", placeholder: "Amount"] ++ number_opts()
+              ) %>
+            </div>
+
+            <.icon
+              name={:trash}
+              class="w-1/12 cursor-pointer"
+              phx-click="transaction_form:remove-uco-transfer"
+              phx-value-index={uco_form.index}
+              phx-target={@parent}
+            />
+          </div>
+        <% end %>
+      </.card_content>
+    </.card>
+
+    <.card class="mb-2">
+      <.card_content category="Token transfers" class="p-2">
+        <.button
+          label="Add a transfer"
+          link_type="a"
+          to="#"
+          phx-click="transaction_form:add-token-transfer"
+          phx-target={@parent}
+          icon={:plus}
+          variant="outline"
+          size="xs"
+          class="w-full"
+        />
+
+        <%= for token_form <- inputs_for f, :token_transfers do %>
+          <%= hidden_inputs_for(token_form) %>
+          <div class="flex gap-1 my-2 p-1 border border-gray-700 rounded">
+            <div class="w-11/12 flex flex-col gap-1">
+              <%= text_input(token_form, :token_address,
+                class: "pc-text-input",
+                placeholder: "Token address"
+              ) %>
+              <%= text_input(token_form, :to,
+                class: "pc-text-input",
+                placeholder: "Recipient address"
+              ) %>
+              <%= number_input(
+                token_form,
+                :amount,
+                [class: "pc-text-input", placeholder: "Amount"] ++ number_opts()
+              ) %>
+              <%= number_input(token_form, :token_id,
+                class: "pc-text-input",
+                placeholder: "Token id"
+              ) %>
+            </div>
+
+            <.icon
+              name={:trash}
+              class="w-1/12 cursor-pointer"
+              phx-click="transaction_form:remove-token-transfer"
+              phx-value-index={token_form.index}
+              phx-target={@parent}
+            />
+          </div>
+        <% end %>
+      </.card_content>
+    </.card>
+
+    <.card class="mb-2">
+      <.card_content category="Ownerships" class="p-2">
+        <.button
+          label="Add a secret"
+          link_type="a"
+          to="#"
+          phx-click="transaction_form:add-ownership"
+          phx-target={@parent}
+          icon={:plus}
+          variant="outline"
+          color="primary"
+          size="xs"
+          class="w-full"
+        />
+
+        <%= for ownership_form <- inputs_for f, :ownerships do %>
+          <%= hidden_inputs_for(ownership_form) %>
+          <div class="flex gap-1 my-2 p-1 border border-gray-700 rounded">
+            <div class="w-11/12 flex flex-col gap-1">
+              <%= text_input(ownership_form, :secret,
+                class: "pc-text-input",
+                placeholder: "Secret"
+              ) %>
+
+              <% # pure html to deal with this nested list %>
+              <%= for {key, public_key_index} <- Enum.with_index(input_value(ownership_form, :authorized_keys) || []) do %>
+                <div class="flex">
+                  <input
+                    name={input_name(ownership_form, :authorized_keys) <> "[]"}
+                    type="text"
+                    value={key}
+                    class="pc-text-input w-11/12"
+                    placeholder="Public key"
+                  />
+                  <div class="w-1/12 flex flex-col place-content-center">
+                    <.icon
+                      name={:trash}
+                      class="cursor-pointer"
+                      phx-click="transaction_form:remove-ownership-public-key"
+                      phx-value-ownership-index={ownership_form.index}
+                      phx-value-public-key-index={public_key_index}
+                      phx-target={@parent}
+                    />
+                  </div>
+                </div>
+              <% end %>
+            </div>
+
+            <div class="w-1/12 flex flex-col gap-1 place-content-center">
+              <.icon
+                name={:plus}
+                class="cursor-pointer"
+                phx-click="transaction_form:add-ownership-public-key"
+                phx-value-ownership-index={ownership_form.index}
+                phx-target={@parent}
+              />
+              <.icon
+                name={:trash}
+                class="cursor-pointer"
+                phx-click="transaction_form:remove-ownership"
+                phx-value-index={ownership_form.index}
+                phx-target={@parent}
+              />
+            </div>
+          </div>
+        <% end %>
+      </.card_content>
+    </.card>
+  </.form>
+</div>

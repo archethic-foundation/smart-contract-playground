@@ -15,7 +15,7 @@ Alpine.start();
 tippy("[data-tippy-content]", {
   arrow: true,
 });
-const CUSTOM_NETWORK_KEY = "custom_network";
+
 let Hooks = {};
 
 Hooks.CodeViewer = {
@@ -62,38 +62,43 @@ Hooks.hook_LoadEditor = {
   }
 };
 
+window.addEventListener("phx:set-code", (e) => {
+  setCodeWhenAvailable(e.detail.code)
+});
+
+function setCodeWhenAvailable(code) {
+  if (!window.editor)
+    return setTimeout(() => { setCodeWhenAvailable(code) }, 100)
+
+  window.editor.getModel().setValue(code)
+}
+
+// On resize, resize the editor
+window.addEventListener('resize', (_e) => {
+  window.dispatchEvent(new Event("phx:resize-editor"))
+});
+
+// Force the monaco editor to resize
+// automaticLayout does not work for us 
+// source: https://berezuzu.medium.com/resizable-monaco-editor-3e922ad54e4
+window.addEventListener("phx:resize-editor", (_e) => {
+  if (!window.editor) return;
+
+  window.editor.layout({ width: 0, height: 0 });
+
+  window.requestAnimationFrame(() => {
+    $el = document.getElementById("archethic-editor")
+    const rect = $el.getBoundingClientRect();
+    window.editor.layout({ width: rect.width, height: rect.height });
+  });
+});
+
 // Validate the contract by sending event to live_view
 Hooks.hook_ValidateContract = {
   mounted() {
     this.el.addEventListener('click', (event) => {
       this.pushEvent("parse", { code: window.editor.getValue() });
     });
-  }
-};
-
-function setEndpoint(that) {
-  const networkUrl = that.el.value == "custom_network" ?
-    window.localStorage.getItem(CUSTOM_NETWORK_KEY) :
-    that.el.value;
-  that.pushEventTo(that.el, "update_endpoint", networkUrl)
-}
-
-Hooks.hook_SelectNetwork = {
-  mounted() {
-    this.el.addEventListener('change', (event) => {
-      setEndpoint(this)
-    });
-    setEndpoint(this);
-  }
-};
-
-Hooks.hook_UpdateOtherNetwork = {
-  mounted() {
-    this.el.addEventListener('keyup', (event) => {
-      if (document.getElementById("selected_network").value == "custom_network") {
-        window.localStorage.setItem(CUSTOM_NETWORK_KEY, this.el.value);
-      }
-    })
   }
 };
 

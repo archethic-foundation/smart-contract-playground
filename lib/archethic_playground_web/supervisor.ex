@@ -9,7 +9,8 @@ defmodule ArchethicPlaygroundWeb.Supervisor do
 
   def init(_) do
     children = [
-      ArchethicPlaygroundWeb.Endpoint
+      ArchethicPlaygroundWeb.Endpoint,
+      {Task.Supervisor, name: ArchethicPlaygroundWeb.TaskSupervisor}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)

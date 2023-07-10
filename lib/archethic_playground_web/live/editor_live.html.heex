@@ -1,14 +1,93 @@
-<div class="flex" >
-    <.live_component module={SidebarComponent} id="sidebar" />
-    <.live_component module={TriggerComponent} id="trigger_component" triggers={@triggers} is_show_trigger={@is_show_trigger} smart_contract_code={@smart_contract_code} />
-    <.live_component module={DeployComponent} id="deploy_component" interpreted_contract={@interpreted_contract} is_show_deploy={@is_show_deploy} smart_contract_code={@smart_contract_code} />
-    <div class="flex h-screen flex-col flex-1">
+<div>
+  <!-- header -->
+  <div class="w-full relative h-10 leading-10 z-10">
     <.live_component module={HeaderComponent} id="header" />
-    <!-- monaco.editor -->
-    <div class="h-screen" phx-update="ignore" id="archethic-editor-wrap">
-        <div class="h-full" id="archethic-editor" phx-hook="hook_LoadEditor" data-debounce-validation="1000"></div>
+  </div>
+  <!-- end header -->
+  <div class="h-screen flex absolute top-0 w-full pt-10">
+    <!-- sidebar -->
+    <div class="flex flex-col dark:bg-gray-800">
+      <.live_component module={SidebarComponent} id="sidebar" />
     </div>
-    <!-- end monaco.editor -->
-    <.live_component module={ConsoleComponent} id="console" console_messages={@console_messages} />
+    <!-- end sidebar -->
+
+    <!-- left panel -->
+    <%= if not is_nil(@left_panel) do %>
+      <div class="dark:bg-gray-900 w-[350px] p-2">
+        <%= if @left_panel == "trigger" do %>
+          <.live_component module={TriggerComponent} id="trigger_component" triggers={@triggers} />
+        <% end %>
+        <%= if @left_panel == "deploy" do %>
+          <.live_component
+            module={DeployComponent}
+            id="deploy_component"
+            transaction={@transaction_contract}
+          />
+        <% end %>
+      </div>
+    <% end %>
+    <!-- end left panel -->
+
+    <!-- center content -->
+    <div class="flex-1 flex flex-col">
+      <div class="flex-1 p-2">
+        <!-- monaco.editor -->
+        <div phx-update="ignore" id="archethic-editor-wrap" class="h-full">
+          <div
+            class="h-full border-2 border-gray-500"
+            id="archethic-editor"
+            phx-hook="hook_LoadEditor"
+            data-debounce-validation="1000"
+          >
+          </div>
+        </div>
+        <!-- end monaco.editor -->
+      </div>
+      <div class="h-60 dark:bg-gray-900">
+        <.live_component
+          module={ConsoleComponent}
+          id="console"
+          console_messages={@console_messages}
+        />
+      </div>
     </div>
+    <!-- end center content --> 
+
+    <!-- right panel -->
+    <%= if not is_nil(@right_panel) do %>
+      <div class="dark:bg-gray-900 flex flex-col w-[350px] p-2">
+        <div class="flex-1 overflow-y-auto">
+          <%= if @right_panel == "contract" do %>
+            <.live_component
+              module={ContractComponent}
+              id="contract_component"
+              transaction={@transaction_contract}
+            />
+          <% end %>
+        </div>
+        <div class="place-content-end">
+          <.icon
+            name={:chevron_double_right}
+            class="text-gray-300 cursor-pointer w-10 h-10"
+            phx-click="toggle_panel"
+            phx-value-side="right"
+            phx-value-panel="contract"
+          />
+        </div>
+      </div>
+    <% else %>
+      <div
+        class="dark:bg-gray-900 w-16 cursor-pointer flex flex-col p-2"
+        phx-click="toggle_panel"
+        phx-value-side="right"
+        phx-value-panel="contract"
+      >
+        <div class="flex-1"></div>
+        <div class="flex justify-center">
+          <.icon name={:chevron_double_left} class="text-gray-300 w-10 h-10" />
+        </div>
+      </div>
+    <% end %>
+    <!-- end right panel -->
+  </div>
 </div>

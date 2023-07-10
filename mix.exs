@@ -56,12 +56,13 @@ defmodule ArchethicPlayground.MixProject do
 
       # UI
       {:tailwind, "~> 0.1", runtime: Mix.env() == :dev},
+      {:petal_components, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
       {:esbuild, "~> 0.2", runtime: Mix.env() == :dev},
       {:archethic,
        git: "https://github.com/archethic-foundation/archethic-node.git",
-       tag: "v1.2.2",
+       branch: "playground",
        runtime: false}
     ]
   end

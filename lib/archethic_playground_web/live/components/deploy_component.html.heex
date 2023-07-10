@@ -1,0 +1,65 @@
+<div class="flex flex-col h-full overflow-y-auto">
+  <.h4 class="uppercase text-center">Contract's deployment</.h4>
+
+  <.form for={@form} phx-change="on-form-change" phx-target={@myself}>
+    <.field field={@form[:endpoint]} options={@endpoints} type="select" label="Endpoint*" />
+
+    <div class="pc-form-field-wrapper">
+      <label class="pc-label">Storage nonce public key*</label>
+      <input class="pc-text-input" type="text" disabled value={@storage_nonce_pubkey} />
+      <div class="pc-form-help-text">Used to encrypt the seed for the authorized nodes</div>
+    </div>
+
+    <.field field={@form[:seed]} label="Seed*" help_text="The seed of the transaction chain" />
+  </.form>
+
+  <% seed = input_value(@form, :seed) %>
+  <.button
+    disabled={seed == nil || seed == "" || RemoteData.loading?(@fees)}
+    loading={RemoteData.loading?(@fees)}
+    link_type="a"
+    to="#"
+    label="Estimate fees"
+    phx-click="estimate"
+    class="mb-4"
+    phx-target={@myself}
+  />
+
+  <%= if RemoteData.success?(@fees) do %>
+    <% fees = RemoteData.result(@fees) %>
+    <.alert with_icon color="info" heading="Estimated fees">
+      <div class="flex justify-center gap-1">
+        <.badge variant="dark" color="primary" label={Float.to_string(fees.uco) <> " UCO"} />
+        <.badge variant="dark" color="warning" label={"~" <> Float.to_string(fees.usd) <> " USD"} />
+        <.badge variant="dark" color="info" label={"~" <> Float.to_string(fees.eur) <> " EUR"} />
+      </div>
+    </.alert>
+  <% end %>
+
+  <%= if RemoteData.failure?(@fees) do %>
+    <.alert with_icon color="danger">Failed to estimate fees. Please retry.</.alert>
+  <% end %>
+
+  <.button
+    disabled={not RemoteData.success?(@fees)}
+    loading={RemoteData.loading?(@deploy)}
+    link_type="a"
+    to="#"
+    label="Deploy contract"
+    phx-click="deploy"
+    class="mb-4"
+    phx-target={@myself}
+  />
+
+  <%= if RemoteData.success?(@deploy) do %>
+    <% address = RemoteData.result(@deploy) %>
+    <.alert with_icon color="success">
+      Transaction created! <.a to={address} label="View the transaction" />
+    </.alert>
+  <% end %>
+
+  <%= if RemoteData.failure?(@deploy) do %>
+    <% msg = RemoteData.error(@deploy) %>
+    <.alert with_icon color="danger"><%= msg %></.alert>
+  <% end %>
+</div>

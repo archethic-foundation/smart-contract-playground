@@ -1,0 +1,102 @@
+<div class="flex flex-col h-full overflow-y-auto">
+  <.h4 class="uppercase text-center">Contract's trigger</.h4>
+
+  <.form :let={f} for={@form} phx-change="on-form-change" phx-target={@myself}>
+    <.field
+      field={@form[:trigger]}
+      type="select"
+      options={@triggers}
+      label="Trigger*"
+      prompt="-- Choose a trigger --"
+      help_text="Triggers are extracted from the code"
+    />
+    <.card class="mb-2">
+      <.card_content category="Mocks" class="p-2">
+        <.button
+          label="Add a mock"
+          link_type="a"
+          to="#"
+          phx-click="add-mock"
+          phx-target={@myself}
+          icon={:plus}
+          variant="outline"
+          size="xs"
+          class="w-full"
+        />
+
+        <%= for mock_form <- inputs_for f, :mocks do %>
+          <%= hidden_inputs_for(mock_form) %>
+          <div class="flex gap-1 my-2 p-1 border border-gray-700 rounded">
+            <div class="w-11/12 flex flex-col gap-1">
+              <%= select(mock_form, :function, @mock_functions,
+                class: "pc-text-input",
+                placeholder: "Input",
+                prompt: "-- Choose a function --"
+              ) %>
+
+              <%= if String.ends_with?(mock_form[:function].value || "", "/1") do %>
+                <%= text_input(mock_form, :input, class: "pc-text-input", placeholder: "Input") %>
+              <% end %>
+
+              <%= if mock_form[:function].value != nil do %>
+                <%= text_input(mock_form, :output, class: "pc-text-input", placeholder: "Output") %>
+              <% end %>
+            </div>
+            <.icon
+              name={:trash}
+              class="w-1/12 cursor-pointer"
+              phx-click="remove-mock"
+              phx-value-index={mock_form.index}
+              phx-target={@myself}
+            />
+          </div>
+        <% end %>
+      </.card_content>
+    </.card>
+  </.form>
+
+  <%= if @form[:transaction].value != nil do %>
+    <div class="uppercase text-center text-gray-300">
+      Transaction
+    </div>
+    <.live_component
+      id="form-trigger"
+      module={TransactionFormComponent}
+      display_mocks={true}
+      display_code={true}
+      parent={@myself}
+      global_variable="transaction"
+      transaction={@form[:transaction].value}
+    />
+  <% end %>
+
+  <div class="flex gap-1">
+    <% trigger_value = input_value(@form, :trigger)
+    valid? = trigger_value != nil && trigger_value != "" %>
+    <.button
+      disabled={not valid?}
+      link_type="a"
+      to="#"
+      color="primary"
+      label="Trigger and update contract's transaction"
+      phx-target={@myself}
+      phx-click="trigger-stateful"
+      class="w-1/2"
+    />
+
+    <.button
+      disabled={not valid?}
+      link_type="a"
+      to="#"
+      color="primary"
+      label="Trigger"
+      phx-target={@myself}
+      phx-click="trigger-stateless"
+      class="w-1/2"
+    />
+  </div>
+
+  <div class="flex-1"></div>
+
+
+</div>
