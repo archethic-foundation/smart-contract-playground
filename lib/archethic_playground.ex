@@ -8,10 +8,16 @@ defmodule ArchethicPlayground do
 
   alias ArchethicPlayground.Transaction, as: PlaygroundTransaction
 
+  require Logger
+
   def parse(transaction_contract) do
     transaction_contract
     |> PlaygroundTransaction.to_archethic()
     |> Contracts.from_transaction()
+  rescue
+    error ->
+      Logger.error(Exception.format(:error, error, __STACKTRACE__))
+      {:error, "Unexpected error #{inspect(error)}"}
   end
 
   def execute(transaction_contract, trigger_form) do

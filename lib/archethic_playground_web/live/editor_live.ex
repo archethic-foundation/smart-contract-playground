@@ -146,6 +146,10 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
         {:error, :contract_failure} ->
           send(self(), {:console, :error, "Contract's execution failed"})
           socket
+
+        {:error, message} when is_binary(message) ->
+          send(self(), {:console, :error, message})
+          socket
       end
 
     {:noreply, socket}
