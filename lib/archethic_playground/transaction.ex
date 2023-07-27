@@ -12,6 +12,18 @@ defmodule ArchethicPlayground.Transaction do
   alias Archethic.TransactionChain.TransactionData
   alias ArchethicPlayground.Utils
 
+  @type t :: %__MODULE__{
+          type: String.t(),
+          content: String.t(),
+          code: String.t(),
+          validation_timestamp: String.t(),
+          address: String.t(),
+          recipients: list(Recipient.t()),
+          uco_transfers: list(UcoTransfer.t()),
+          token_transfers: list(TokenTransfer.t()),
+          ownerships: list(Ownership.t())
+        }
+
   @derive {Jason.Encoder, except: [:__meta__, :id]}
   schema "transaction" do
     field(:type, :string)
@@ -135,6 +147,7 @@ defmodule ArchethicPlayground.Transaction do
     |> Enum.into(%{})
   end
 
+  @spec to_archethic(t()) :: ArchethicTransaction.t()
   def to_archethic(t = %__MODULE__{}) do
     tx = %ArchethicTransaction{
       type: String.to_existing_atom(t.type),
@@ -187,10 +200,11 @@ defmodule ArchethicPlayground.Transaction do
     %ArchethicTransaction{
       tx
       | validation_stamp: %ArchethicTransaction.ValidationStamp{
-          timestamp: Utils.Date.browser_timestamp_to_datetime(t.validation_timestamp),
-          ledger_operations: %ArchethicTransaction.ValidationStamp.LedgerOperations{
-            transaction_movements: ArchethicTransaction.get_movements(tx)
-          }
+          ArchethicTransaction.ValidationStamp.generate_dummy()
+          | timestamp: Utils.Date.browser_timestamp_to_datetime(t.validation_timestamp),
+            ledger_operations: %ArchethicTransaction.ValidationStamp.LedgerOperations{
+              transaction_movements: ArchethicTransaction.get_movements(tx)
+            }
         }
     }
   end
