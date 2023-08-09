@@ -10,7 +10,17 @@
       <div class="pc-form-help-text">Used to encrypt the seed for the authorized nodes</div>
     </div>
 
-    <.field field={@form[:seed]} label="Seed*" help_text="The seed of the transaction chain" />
+    <.field field={@form[:deploy_with_wallet]} type="switch" />
+    <%= if @form[:deploy_with_wallet].value == "true" do %>
+      <.field
+        field={@form[:wallet_url]}
+        label="Wallet URL"
+        help_text="The URL to access the wallet"
+        disabled="true"
+      />
+    <% else %>
+      <.field field={@form[:seed]} label="Seed*" help_text="The seed of the transaction chain" />
+    <% end %>
   </.form>
 
   <% dest = destination(@form) %>
@@ -24,9 +34,8 @@
     </.alert>
   <% end %>
 
-  <% seed = input_value(@form, :seed) %>
   <.button
-    disabled={seed == nil || seed == "" || RemoteData.loading?(@fees)}
+    disabled={RemoteData.loading?(@fees)}
     loading={RemoteData.loading?(@fees)}
     link_type="a"
     to="#"
@@ -51,17 +60,32 @@
     <.alert with_icon color="danger">Failed to estimate fees. Please retry.</.alert>
   <% end %>
 
-  <.button
-    disabled={not RemoteData.success?(@fees)}
-    loading={RemoteData.loading?(@deploy)}
-    link_type="a"
-    to="#"
-    label="Deploy contract"
-    phx-click="deploy"
-    class="mb-4"
-    phx-target={@myself}
-  />
-
+  <%= if @form[:deploy_with_wallet].value == "true" do %>
+    <.button
+      disabled={not RemoteData.success?(@fees)}
+      loading={RemoteData.loading?(@deploy)}
+      link_type="a"
+      to="#"
+      label="Deploy contract with wallet"
+      phx-click="deploy_with_wallet"
+      class="mb-4"
+      phx-target={@myself}
+    />
+    <.alert with_icon color="info" class="mb-2">
+      <%= @wallet_connection_state %>
+    </.alert>
+  <% else %>
+    <.button
+      disabled={not RemoteData.success?(@fees)}
+      loading={RemoteData.loading?(@deploy)}
+      link_type="a"
+      to="#"
+      label="Deploy contract"
+      phx-click="deploy"
+      class="mb-4"
+      phx-target={@myself}
+    />
+  <% end %>
   <%= if RemoteData.success?(@deploy) do %>
     <% address = RemoteData.result(@deploy) %>
     <.alert with_icon color="success">
@@ -69,7 +93,11 @@
       <.a to={address} target="_blank" label="View the transaction" />
     </.alert>
   <% end %>
-
+  <div
+    id="wallet_deployment"
+    phx-hook="WalletDeployment"
+    data-wallet_url={@form[:wallet_url].value}
+  />
   <%= if RemoteData.failure?(@deploy) do %>
     <% msg = RemoteData.error(@deploy) %>
     <.alert with_icon color="danger"><%= msg %></.alert>

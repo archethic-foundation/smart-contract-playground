@@ -8,13 +8,26 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
   alias Archethic.Crypto
   alias Archethic.Utils.Regression.Playbook
 
+  alias Archethic.TransactionChain.Transaction, as: ArchethicTransaction
+  alias Archethic.TransactionChain.TransactionData
+  alias Archethic.TransactionChain.TransactionData.Ledger
+  alias Archethic.TransactionChain.TransactionData.TokenLedger
+  alias Archethic.TransactionChain.TransactionData.TokenLedger.Transfer, as: TokenTransfer
+  alias Archethic.TransactionChain.TransactionData.Ownership
+  alias Archethic.TransactionChain.TransactionData.UCOLedger
+  alias Archethic.TransactionChain.TransactionData.UCOLedger.Transfer, as: UCOTransfer
+
+  @default_wallet_url "ws://localhost:12345"
+
   def mount(socket) do
     endpoints = list_endpoints()
     default_endpoint = List.first(endpoints)
 
     form = %{
       "seed" => "",
-      "endpoint" => default_endpoint
+      "endpoint" => default_endpoint,
+      "wallet_url" => @default_wallet_url,
+      "deploy_with_wallet" => false
     }
 
     socket =
@@ -23,7 +36,8 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
         storage_nonce_pubkey: "",
         endpoints: endpoints,
         fees: %RemoteData{},
-        deploy: %RemoteData{}
+        deploy: %RemoteData{},
+        wallet_connection_state: "Wallet disconnected"
       )
 
     update_storage_nonce_public_key(default_endpoint)
@@ -56,6 +70,13 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
     if params["_target"] == ["endpoint"] do
       update_storage_nonce_public_key(params["endpoint"])
     end
+
+    params =
+      if params["wallet_url"] == nil do
+        Map.put(params, "wallet_url", @default_wallet_url)
+      else
+        params
+      end
 
     {:noreply, assign_form(socket, params)}
   end
@@ -110,6 +131,41 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
     )
 
     socket = socket |> assign(deploy: RemoteData.loading())
+    {:noreply, socket}
+  end
+
+  def handle_event("deploy_with_wallet", _, socket) do
+    wallet_url = socket.assigns.form.source["wallet_url"]
+
+    transaction =
+      socket.assigns.transaction
+      |> Transaction.to_archethic()
+      |> tx_to_json()
+
+    socket = socket |> assign(deploy: RemoteData.loading())
+
+    {:noreply,
+     push_event(socket, "deploy_with_wallet", %{transaction: transaction, wallet_url: wallet_url})}
+  end
+
+  def handle_event("wallet_connection_state_change", %{"state" => state}, socket) do
+    {:noreply, assign(socket, wallet_connection_state: state)}
+  end
+
+  def handle_event("wallet_deployment_error", %{"result" => result}, socket) do
+    socket = socket |> assign(deploy: %RemoteData{status: {:failure, result}})
+    {:noreply, socket}
+  end
+
+  def handle_event("wallet_deployment_success", %{"result" => result}, socket) do
+    uri = URI.parse(socket.assigns.form.source["endpoint"])
+
+    success_message =
+      %URI{uri | path: "/explorer/transaction/" <> result["transactionAddress"]}
+      |> URI.to_string()
+      |> RemoteData.success()
+
+    socket = socket |> assign(deploy: success_message)
     {:noreply, socket}
   end
 
@@ -219,7 +275,7 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
     seed = form.source["seed"]
     endpoint = form.source["endpoint"]
 
-    if seed == "" do
+    if seed == "" or is_nil(seed) do
       nil
     else
       # assumption that contract is deployed at index 1 (to be changed later by using chain_length+1)
@@ -245,5 +301,70 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
     |> elem(0)
     |> Crypto.derive_address()
     |> Base.encode16()
+  end
+
+  defp tx_to_json(%ArchethicTransaction{
+         version: version,
+         type: type,
+         data: %TransactionData{
+           ledger: %Ledger{
+             uco: %UCOLedger{transfers: uco_transfers},
+             token: %TokenLedger{transfers: token_transfers}
+           },
+           code: code,
+           content: content,
+           recipients: recipients,
+           ownerships: ownerships
+         }
+       }) do
+    %{
+      "version" => version,
+      "type" => Atom.to_string(type),
+      "data" => %{
+        "ledger" => %{
+          "uco" => %{
+            "transfers" =>
+              Enum.map(uco_transfers, fn %UCOTransfer{to: to, amount: amount} ->
+                %{"to" => Base.encode16(to), "amount" => amount}
+              end)
+          },
+          "token" => %{
+            "transfers" =>
+              Enum.map(token_transfers, fn %TokenTransfer{
+                                             to: to,
+                                             amount: amount,
+                                             token_address: token_address,
+                                             token_id: token_id
+                                           } ->
+                %{
+                  "to" => Base.encode16(to),
+                  "amount" => amount,
+                  "token" => token_address,
+                  "token_id" => token_id
+                }
+              end)
+          }
+        },
+        "code" => code,
+        "content" => Base.encode16(content),
+        "recipients" => Enum.map(recipients, &Base.encode16(&1)),
+        "ownerships" =>
+          Enum.map(ownerships, fn %Ownership{
+                                    secret: secret,
+                                    authorized_keys: authorized_keys
+                                  } ->
+            %{
+              "secret" => Base.encode16(secret),
+              "authorizedKeys" =>
+                Enum.map(authorized_keys, fn {public_key, encrypted_secret_key} ->
+                  %{
+                    "publicKey" => Base.encode16(public_key),
+                    "encryptedSecretKey" => Base.encode16(encrypted_secret_key)
+                  }
+                end)
+            }
+          end)
+      }
+    }
   end
 end

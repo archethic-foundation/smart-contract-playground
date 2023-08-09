@@ -2,6 +2,8 @@ import { Socket } from "phoenix";
 import { LiveSocket } from "phoenix_live_view";
 import { loadEditor } from "./editor/editor";
 import { highlightBlock } from 'highlight.js';
+import Archethic from 'archethic';
+
 
 // add tooltips
 import tippy from "tippy.js";
@@ -158,4 +160,55 @@ function extractLineNumber(message) {
   const reg = new RegExp(/L(\d+)(:C(\d+))?$/g);
   const found = reg.exec(message);
   return !found ? 0 : parseInt(found[1]);
+}
+let localArchethic;
+Hooks.WalletDeployment = {
+  mounted() {
+    const walletUrl = this.el.dataset.wallet_url;
+    localArchethic = new Archethic(walletUrl);
+    localArchethic.rpcWallet.onconnectionstatechange((state) => {
+      this.pushEventTo(this.el, "wallet_connection_state_change", { state: state });
+    })
+    console.log(localArchethic.rpcWallet.connectionState)
+    if(localArchethic.rpcWallet.connectionState != "WalletRPCConnection_open"){
+      localArchethic.connect();
+    }
+
+    this.handleEvent("deploy_with_wallet", e => {
+      const transaction = e.transaction;
+      let txBuilder = localArchethic.transaction
+      .new()
+      .setType(transaction.type)
+      .setCode(transaction.data.code)
+      .setContent(transaction.data.content);
+  
+      transaction.data.ledger.uco.transfers.forEach(function (transfer) {
+        txBuilder.addUCOTransfer(transfer.to, transfer.amount);
+      });
+    
+      transaction.data.ledger.token.transfers.forEach(function (transfer) {
+        txBuilder.addTokenTransfer(
+          transfer.to,
+          transfer.amount,
+          transfer.token,
+          transfer.tokenId
+        );
+      });
+    
+      transaction.data.recipients.forEach(function (recipient) {
+        txBuilder.addRecipient(recipient);
+      });
+    
+      transaction.data.ownerships.forEach(function (ownership) {
+        txBuilder.addOwnership(ownership.secret, ownership.authorizedKeys);
+      });
+
+      localArchethic.rpcWallet.sendTransaction(txBuilder).then((sendResult) => {
+        this.pushEventTo(this.el, "wallet_deployment_success", { result: sendResult });
+      }).catch((sendError) => {
+        this.pushEventTo(this.el, "wallet_deployment_error", { result: sendError.message });
+      });
+    })
+
+  }
 }
