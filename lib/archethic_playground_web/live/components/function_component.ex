@@ -21,7 +21,35 @@ defmodule ArchethicPlaygroundWeb.FunctionComponent do
   end
 
   def update(assigns, socket) do
-    {:ok, assign(socket, assigns)}
+    case Map.get(assigns, :selected_function) do
+      nil ->
+        {:ok, assign(socket, assigns)}
+
+      selected_function ->
+        {_function, args_names} = deserialize_function(selected_function)
+
+        args_value = Map.get(assigns, :function_args, [])
+
+        args =
+          args_names
+          |> Enum.zip(args_value)
+          |> Enum.map(fn {key, value} ->
+            %KeyValue{key: key, value: value}
+          end)
+
+        socket =
+          socket
+          |> assign(assigns)
+          |> assign(
+            form:
+              to_form(%{
+                "function" => selected_function,
+                "args" => args
+              })
+          )
+
+        {:ok, socket}
+    end
   end
 
   def handle_event(
@@ -29,6 +57,8 @@ defmodule ArchethicPlaygroundWeb.FunctionComponent do
         %{"_target" => ["function"], "function" => ""},
         socket
       ) do
+    send(self(), :clear_selected_function)
+
     # this is the prompt "-- Choose a function --" option
     {:noreply, assign(socket, form: clean_form())}
   end
@@ -81,11 +111,11 @@ defmodule ArchethicPlaygroundWeb.FunctionComponent do
           end)
       end
 
-    {function, _args_names} = deserialize_function(function_str)
+    {function, args_names} = deserialize_function(function_str)
 
     send(
       self(),
-      {:execute_function, function, args_values}
+      {:execute_function, function, args_values, args_names}
     )
 
     {:noreply, socket}

@@ -20,6 +20,8 @@
             id={TriggerComponent.id()}
             triggers={@triggers}
             contract_address={@transaction_contract.address}
+            trigger={@trigger}
+            mocks={@mocks}
           />
         <% end %>
         <%= if @left_panel == "function" do %>
@@ -28,6 +30,8 @@
             id={FunctionComponent.id()}
             functions={@functions}
             transaction={@transaction_contract}
+            selected_function={@selected_function}
+            function_args={@function_args}
           />
         <% end %>
         <%= if @left_panel == "deploy" do %>
