@@ -15,5 +15,6 @@ defmodule ArchethicPlaygroundWeb.Router do
   scope "/", ArchethicPlaygroundWeb do
     pipe_through(:browser)
     live("/", EditorLive)
+    live("/:state", EditorLive)
   end
 end

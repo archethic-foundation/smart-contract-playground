@@ -12,6 +12,7 @@ defmodule ArchethicPlayground.TriggerForm do
           recipient: nil | RecipientForm.t()
         }
 
+  @derive {Jason.Encoder, except: [:id]}
   embedded_schema do
     field(:trigger, :string)
     embeds_one(:recipient, RecipientForm, on_replace: :delete)

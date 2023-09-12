@@ -35,6 +35,21 @@ defmodule ArchethicPlaygroundWeb.TriggerComponent do
     )
   end
 
+  def update(assigns, socket) do
+    case Map.get(assigns, :trigger) do
+      nil ->
+        {:ok, assign(socket, assigns)}
+
+      form ->
+        socket =
+          socket
+          |> assign(assigns)
+          |> assign_form(form |> Ecto.Changeset.change())
+
+        {:ok, socket}
+    end
+  end
+
   def handle_event("on-form-change", params = %{"trigger_form" => trigger_form}, socket) do
     previous_trigger_form = socket.assigns.form.source |> Ecto.Changeset.apply_changes()
 

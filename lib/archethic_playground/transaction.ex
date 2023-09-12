@@ -59,14 +59,18 @@ defmodule ArchethicPlayground.Transaction do
   end
 
   def new(attrs \\ %{}) do
-    attrs =
-      Map.put_new(
-        attrs,
-        "validation_timestamp",
-        Utils.Date.datetime_to_browser_timestamp(DateTime.utc_now())
-      )
+    if Map.has_key?(attrs, :validation_timestamp) do
+      changeset(%__MODULE__{}, attrs)
+    else
+      attrs =
+        Map.put_new(
+          attrs,
+          "validation_timestamp",
+          Utils.Date.datetime_to_browser_timestamp(DateTime.utc_now())
+        )
 
-    changeset(%__MODULE__{}, attrs)
+      changeset(%__MODULE__{}, attrs)
+    end
   end
 
   def append_empty_recipient(transaction) do
