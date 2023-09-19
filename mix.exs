@@ -9,7 +9,8 @@ defmodule ArchethicPlayground.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
-      dialyzer: dialyzer()
+      dialyzer: dialyzer(),
+      elixirc_options: [warnings_as_errors: true]
     ]
   end
 
