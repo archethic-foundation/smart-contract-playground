@@ -6,7 +6,7 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
   alias ArchethicPlayground.Transaction
   alias ArchethicPlayground.RemoteData
   alias Archethic.Crypto
-  alias Archethic.Utils.Regression.Playbook
+  alias Archethic.Utils.Regression.Api
 
   def id(), do: "deploy_component"
 
@@ -19,6 +19,8 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
       "endpoint" => default_endpoint
     }
 
+    endpoint = URI.parse(default_endpoint) |> uri_to_api_endpoint()
+
     socket =
       socket
       |> assign(
@@ -28,7 +30,7 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
         deploy: %RemoteData{}
       )
 
-    update_storage_nonce_public_key(default_endpoint)
+    update_storage_nonce_public_key(endpoint)
 
     {:ok, assign_form(socket, form)}
   end
@@ -56,7 +58,9 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
 
   def handle_event("on-form-change", params, socket) do
     if params["_target"] == ["endpoint"] do
-      update_storage_nonce_public_key(params["endpoint"])
+      URI.parse(params["endpoint"])
+      |> uri_to_api_endpoint()
+      |> update_storage_nonce_public_key()
     end
 
     {:noreply, assign_form(socket, params)}
@@ -121,7 +125,7 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
     Task.Supervisor.start_child(
       ArchethicPlaygroundWeb.TaskSupervisor,
       fn ->
-        storage_nonce_pubkey = storage_nonce_public_key(URI.parse(endpoint))
+        storage_nonce_pubkey = storage_nonce_public_key(endpoint)
 
         send_update(liveview_pid, __MODULE__,
           id: "deploy_component",
@@ -131,20 +135,16 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
     )
   end
 
-  defp storage_nonce_public_key(uri) do
-    Playbook.storage_nonce_public_key(uri.host, uri.port, scheme_to_proto(uri.scheme))
-    |> Base.encode16()
+  defp storage_nonce_public_key(endpoint) do
+    Api.get_storage_nonce_public_key(endpoint) |> Base.encode16()
   end
 
   defp get_transaction_fees(seed, transaction, uri) do
-    case Playbook.get_transaction_fee(
+    case Api.get_transaction_fee(
            seed,
            transaction.type,
            transaction.data,
-           uri.host,
-           uri.port,
-           Crypto.default_curve(),
-           scheme_to_proto(uri.scheme)
+           uri_to_api_endpoint(uri)
          ) do
       {:ok, %{"fee" => uco, "rates" => %{"eur" => eur_rate, "usd" => usd_rate}}} ->
         RemoteData.success(%{
@@ -170,14 +170,11 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
   end
 
   defp send_transaction(seed, transaction, uri) do
-    case Playbook.send_transaction_with_await_replication(
+    case Api.send_transaction_with_await_replication(
            seed,
            transaction.type,
            transaction.data,
-           uri.host,
-           uri.port,
-           Crypto.default_curve(),
-           scheme_to_proto(uri.scheme),
+           uri_to_api_endpoint(uri),
            await_timeout: 15_000
          ) do
       {:ok, address} ->
@@ -239,5 +236,9 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
         genesis_url: genesis_url
       }
     end
+  end
+
+  defp uri_to_api_endpoint(%URI{host: host, port: port, scheme: scheme}) do
+    %Api{host: host, port: port, protocol: scheme_to_proto(scheme)}
   end
 end
