@@ -7,8 +7,10 @@ defmodule ArchethicPlayground do
   alias Archethic.Contracts.Contract
   alias Archethic.Contracts.Contract.ActionWithTransaction
   alias Archethic.Contracts.Contract.ActionWithoutTransaction
+  alias Archethic.Contracts.Contract.ConditionRejected
   alias Archethic.Contracts.Contract.Failure
   alias Archethic.Contracts.Contract
+  alias Archethic.Contracts.Interpreter.Logs
   alias Archethic.Crypto
   alias Archethic.TransactionChain.Transaction
   alias ArchethicPlayground.RecipientForm
@@ -38,18 +40,16 @@ defmodule ArchethicPlayground do
           function_name :: String.t(),
           args_values :: list(any())
         ) ::
-          {:ok, result :: any()}
-          | {:error, :function_failure}
-          | {:error, :function_does_not_exist}
-          | {:error, :function_is_private}
-          | {:error, :timeout}
+          {:ok, result :: any(), logs :: Logs.t()}
+          | {:error, reason :: Failure.t()}
   def execute_function(contract_tx, function_name, args_values) do
     {:ok, contract} = parse(contract_tx)
     Contracts.execute_function(contract, function_name, args_values)
   end
 
   @spec execute(PlaygroundTransaction.t(), TriggerForm.t(), list(Mock.t())) ::
-          {:ok, PlaygroundTransaction.t() | nil} | {:error, atom()}
+          {:ok, tx :: PlaygroundTransaction.t() | nil}
+          | {:error, reason :: Failure.t() | ConditionRejected.t()}
   def execute(transaction_contract, trigger_form, mocks) do
     # run in a task to ensure the process' dictionary is cleaned
     # because interpreter use it (ex: http module)
@@ -97,13 +97,16 @@ defmodule ArchethicPlayground do
 
     ArchethicPlayground.MockFunctions.prepare_mocks(mocks)
 
-    with {:ok, contract} <- parse(transaction_contract),
-         true <-
+    with {:ok, contract} <-
+           parse(transaction_contract),
+         {:ok, logs_precond} <-
            check_valid_precondition(trigger, contract, maybe_tx, maybe_recipient, datetime),
-         %ActionWithTransaction{
-           next_tx: next_tx,
-           encoded_state: encoded_state
-         } <-
+         {:ok,
+          %ActionWithTransaction{
+            next_tx: next_tx,
+            encoded_state: encoded_state,
+            logs: logs_action
+          }} <-
            Contracts.execute_trigger(
              trigger,
              contract,
@@ -111,7 +114,7 @@ defmodule ArchethicPlayground do
              maybe_recipient,
              time_now: datetime
            ),
-         true <-
+         {:ok, logs_postcond} <-
            check_valid_postcondition(contract, next_tx, datetime),
          next_tx <-
            PlaygroundTransaction.from_archethic(
@@ -120,19 +123,25 @@ defmodule ArchethicPlayground do
              transaction_contract.seed,
              1 + transaction_contract.index
            ) do
-      {:ok, next_tx}
+      {:ok, next_tx, logs_precond ++ logs_action ++ logs_postcond}
     else
-      false ->
-        {:error, "Condition failed"}
+      {:ok, %ActionWithoutTransaction{logs: logs}} ->
+        {:ok, nil, logs}
 
-      %ActionWithoutTransaction{} ->
-        {:ok, nil}
+      {:error, reason = %Failure{}} ->
+        {:error, reason}
 
-      %Failure{user_friendly_error: reason} ->
+      {:error, reason = %ConditionRejected{}} ->
         {:error, reason}
 
       {:error, reason} ->
-        {:error, reason}
+        {:error,
+         %Failure{
+           user_friendly_error: "Parsing error: #{reason}",
+           error: reason,
+           logs: [],
+           stacktrace: []
+         }}
     end
   end
 
@@ -158,7 +167,7 @@ defmodule ArchethicPlayground do
          nil,
          datetime
        ) do
-    Contracts.valid_condition?(:oracle, contract, tx, nil, datetime)
+    Contracts.execute_condition(:oracle, contract, tx, nil, datetime)
   end
 
   defp check_valid_precondition(
@@ -168,18 +177,18 @@ defmodule ArchethicPlayground do
          recipient,
          datetime
        ) do
-    Contracts.valid_condition?(condition_type, contract, tx, recipient, datetime)
+    Contracts.execute_condition(condition_type, contract, tx, recipient, datetime)
   end
 
-  defp check_valid_precondition(_, _, _, _, _), do: :ok
+  defp check_valid_precondition(_, _, _, _, _), do: {:ok, []}
 
   defp check_valid_postcondition(
          contract = %Contract{},
          next_tx = %Transaction{},
          datetime
        ) do
-    Contracts.valid_condition?(:inherit, contract, next_tx, nil, datetime)
+    Contracts.execute_condition(:inherit, contract, next_tx, nil, datetime)
   end
 
-  defp check_valid_postcondition(_, _, _), do: :ok
+  defp check_valid_postcondition(_, _, _), do: {:ok, []}
 end

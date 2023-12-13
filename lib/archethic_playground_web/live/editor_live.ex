@@ -12,6 +12,8 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
   alias ArchethicPlaygroundWeb.TriggerComponent
 
   alias Archethic.Contracts.Contract
+  alias Archethic.Contracts.Contract.ConditionRejected
+  alias Archethic.Contracts.Contract.Failure
 
   use ArchethicPlaygroundWeb, :live_view
 
@@ -62,6 +64,17 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
 
   def handle_info({:console, :clear}, socket) do
     {:noreply, assign(socket, console_messages: [])}
+  end
+
+  def handle_info({:console, :logs, logs}, socket) do
+    dated_data =
+      logs
+      |> Enum.uniq()
+      |> Enum.map(fn {datetime, term} ->
+        {datetime, :info, inspect(term)}
+      end)
+
+    {:noreply, assign(socket, console_messages: socket.assigns.console_messages ++ dated_data)}
   end
 
   def handle_info({:console, class, data}, socket) do
@@ -118,20 +131,13 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
            function_name,
            args_values
          ) do
-      {:ok, value} ->
+      {:ok, value, logs} ->
+        send(self(), {:console, :logs, logs})
         send(self(), {:console, :success, value})
 
-      {:error, :function_failure} ->
-        send(self(), {:console, :error, "Function failed"})
-
-      {:error, :function_does_not_exist} ->
-        send(self(), {:console, :error, "Function does not exist"})
-
-      {:error, :function_is_private} ->
-        send(self(), {:console, :error, "Function is private"})
-
-      {:error, :timeout} ->
-        send(self(), {:console, :error, "Function timed-out"})
+      {:error, %Failure{user_friendly_error: err, logs: logs}} ->
+        send(self(), {:console, :logs, logs})
+        send(self(), {:console, :error, err})
     end
 
     {:noreply, socket}
@@ -147,11 +153,14 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
              trigger_form,
              mocks
            ) do
-        {:ok, nil} ->
+        {:ok, nil, logs} ->
+          send(self(), {:console, :logs, logs})
           send(self(), {:console, :success, "No resulting transaction"})
           socket
 
-        {:ok, tx} ->
+        {:ok, tx, logs} ->
+          send(self(), {:console, :logs, logs})
+
           send(
             self(),
             {:console, :success,
@@ -168,32 +177,14 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
             socket
           end
 
-        {:error, :invalid_transaction_constraints} ->
-          send(self(), {:console, :error, "Contract's condition 'transaction' failed"})
+        {:error, %Failure{user_friendly_error: reason, logs: logs}} ->
+          send(self(), {:console, :logs, logs})
+          send(self(), {:console, :error, reason})
           socket
 
-        {:error, :invalid_inherit_constraints} ->
-          send(self(), {:console, :error, "Contract's condition 'inherit' failed"})
-          socket
-
-        {:error, :invalid_oracle_constraints} ->
-          send(self(), {:console, :error, "Contract's condition 'oracle' failed"})
-          socket
-
-        {:error, :invalid_triggers_execution} ->
-          send(self(), {:console, :error, "Trigger is incorrect"})
-          socket
-
-        {:error, :contract_failure} ->
-          send(self(), {:console, :error, "Contract's execution failed"})
-          socket
-
-        {:error, {:recipient_argument_is_not_json, value}} ->
-          send(self(), {:console, :error, "A recipient's argument is not valid JSON: #{value}"})
-          socket
-
-        {:error, message} when is_binary(message) ->
-          send(self(), {:console, :error, message})
+        {:error, %ConditionRejected{subject: subject, reason: reason, logs: logs}} ->
+          send(self(), {:console, :logs, logs})
+          send(self(), {:console, :error, condition_rejected_to_string(subject, reason)})
           socket
       end
 
@@ -206,6 +197,18 @@ defmodule ArchethicPlaygroundWeb.EditorLive do
   #  | |_) | |  | |\ V | (_| | ||  __/
   #  | .__/|_|  |_| \_/ \__,_|\__\___|
   #  |_|
+
+  defp condition_rejected_to_string("N/A", nil),
+    do: "Condition rejected"
+
+  defp condition_rejected_to_string("N/A", reason),
+    do: "Condition rejected: #{reason}"
+
+  defp condition_rejected_to_string(subject, nil),
+    do: "Condition '#{subject}' rejected"
+
+  defp condition_rejected_to_string(subject, reason),
+    do: "Condition '#{subject}' rejected: #{reason}"
 
   defp get_triggers(%Contract{triggers: triggers}) do
     triggers
