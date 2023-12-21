@@ -171,7 +171,7 @@ defmodule ArchethicPlayground do
     Contracts.valid_condition?(condition_type, contract, tx, recipient, datetime)
   end
 
-  defp check_valid_precondition(_, _, _, _, _), do: :ok
+  defp check_valid_precondition(_, _, _, _, _), do: true
 
   defp check_valid_postcondition(
          contract = %Contract{},
@@ -181,5 +181,5 @@ defmodule ArchethicPlayground do
     Contracts.valid_condition?(:inherit, contract, next_tx, nil, datetime)
   end
 
-  defp check_valid_postcondition(_, _, _), do: :ok
+  defp check_valid_postcondition(_, _, _), do: true
 end
