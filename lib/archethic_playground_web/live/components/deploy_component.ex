@@ -154,11 +154,13 @@ defmodule ArchethicPlaygroundWeb.DeployComponent do
           eur:
             uco
             |> Kernel.*(eur_rate)
+            |> trunc()
             |> Archethic.Utils.from_bigint()
             |> Float.round(3),
           usd:
             uco
             |> Kernel.*(usd_rate)
+            |> trunc()
             |> Archethic.Utils.from_bigint()
             |> Float.round(3)
         })
